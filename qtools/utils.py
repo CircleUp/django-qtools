@@ -1,6 +1,9 @@
 import datetime
+
 from django.db import connection, models
 from django.db.backends.utils import typecast_timestamp
+
+from .exceptions import InvalidLookupUsage
 
 
 def _django_instances_to_keys(*objs):
@@ -14,7 +17,7 @@ def _django_instances_to_keys(*objs):
 
 def assert_is_valid_lookup_for_field(lookup, field):
     from .lookups import VALID_FIELD_LOOKUPS
-    from .pyq import InvalidLookupUsage, simplify_data_types
+    from .pyq import simplify_data_types
 
     simple_type = simplify_data_types(field.db_type(connection))
 

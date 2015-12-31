@@ -1,7 +1,9 @@
 from django.db import models
+
+from .exceptions import NoOpFilterException
 from .lookups import evaluate_lookup, SUPPORTED_LOOKUP_NAMES
 from .utils import assert_is_valid_lookup_for_field
-from .exceptions import InvalidLookupUsage, NoOpFilterException
+
 
 def filter_objs_by_q(objs, q):
     return [obj for obj in objs if obj_matches_q(obj, q)]
@@ -67,14 +69,14 @@ def split_data_path_from_lookup(filter_statement):
 
 
 _DB_TYPES_SIMPLE_MAP = {
-    'bool': 'boolean',
-    'integer': 'number',
-    'float': 'number',
-    'real': 'number',
-    'decimal': 'number',
-    'text': 'string',
+    'bool':     'boolean',
+    'integer':  'number',
+    'float':    'number',
+    'real':     'number',
+    'decimal':  'number',
+    'text':     'string',
     'datetime': 'datetime',
-    'date': 'date'
+    'date':     'date'
 }
 
 

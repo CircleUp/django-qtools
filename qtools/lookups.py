@@ -4,7 +4,7 @@ import operator
 from functools import partial
 
 from .exceptions import InvalidLookupUsage
-from utils import django_instances_to_keys_for_comparison, date_lookup, to_str
+from .utils import django_instances_to_keys_for_comparison, date_lookup, to_str
 
 
 def contains(haystack, needle):
