@@ -7,6 +7,7 @@ from .exceptions import InvalidLookupUsage
 
 
 def _django_instances_to_keys(*objs):
+    """Convert django instances to keys"""
     return_objs = []
     for obj in objs:
         if isinstance(obj, models.Model):
@@ -15,10 +16,17 @@ def _django_instances_to_keys(*objs):
     return return_objs
 
 
-def assert_is_valid_lookup_for_field(lookup, field):
-    from .lookups import VALID_FIELD_LOOKUPS
-    from .pyq import simplify_data_types
+VALID_FIELD_LOOKUPS = {
+    'boolean':  ['exact', 'in', 'isnull'],
+    'number':   ['exact', 'in', 'gt', 'gte', 'lt', 'lte', 'range', 'isnull'],
+    'string':   ['exact', 'iexact', 'contains', 'icontains', 'in', 'gt', 'gte', 'lt', 'lte',
+                 'startswith', 'istartswith', 'endswith', 'iendswith', 'range', 'isnull', 'search', 'regex', 'iregex'],
+    'date':     ['exact', 'in', 'gt', 'gte', 'lt', 'lte', 'range', 'year', 'month', 'day', 'week_day', 'isnull'],
+    'datetime': ['exact', 'in', 'gt', 'gte', 'lt', 'lte', 'range', 'year', 'month', 'day', 'week_day', 'hour', 'minute', 'second', 'isnull']
+}
 
+
+def assert_is_valid_lookup_for_field(lookup, field):
     simple_type = simplify_data_types(field.db_type(connection))
 
     if simple_type in VALID_FIELD_LOOKUPS:
@@ -57,3 +65,22 @@ def to_str(text):
     if not isinstance(text, basestring):
         text = str(text)
     return text
+
+
+_DB_TYPES_SIMPLE_MAP = {
+    'bool':     'boolean',
+    'integer':  'number',
+    'float':    'number',
+    'real':     'number',
+    'decimal':  'number',
+    'text':     'string',
+    'datetime': 'datetime',
+    'date':     'date'
+}
+
+
+def simplify_data_types(db_field_type):
+    if 'varchar' in db_field_type:
+        return 'string'
+
+    return _DB_TYPES_SIMPLE_MAP.get(db_field_type, db_field_type)

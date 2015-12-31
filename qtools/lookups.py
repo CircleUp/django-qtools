@@ -1,10 +1,33 @@
-import re
+"""
+Python equivalents to Django lookups
+
+These are made to mimic how a SQL query would respond. Some things to note:
+ - in SQL any comparison to a null value will return false (except IS NULL). These lookups treat
+   `None` the same way.
+ - SQL is more forgiving than it should be. While SQL may allow you to use a date function on a
+   boolean value, this library will throw an exception. Consult VALID_FIELD_LOOKUPS to see what
+   is supported.
+ - This was extensively tested against sqlite and may reflect some idiosyncrasies of sqlite until
+   we do further testing.
+"""
 import datetime
 import operator
+import re
 from functools import partial
 
 from .exceptions import InvalidLookupUsage
 from .utils import django_instances_to_keys_for_comparison, date_lookup, to_str
+
+
+def exact(a, b):
+    return a is not None and a == b
+
+
+def iexact(a, b):
+    if a is None:
+        return False
+
+    return to_str(a).lower() == to_str(b).lower()
 
 
 def contains(haystack, needle):
@@ -115,45 +138,34 @@ def istartswith(text, beginning):
 
 
 LOOKUPS = {
-    'exact': lambda a, b: a is not None and a == b,
-    'iexact': lambda a, b: to_str(a).lower() == to_str(b).lower(),
-    'contains': contains,
-    'icontains': icontains,
-    'in': in_func,
-    'gt': django_instances_to_keys_for_comparison(operator.gt),
-    'gte': django_instances_to_keys_for_comparison(lambda a, b: a >= b),
-    'lt': django_instances_to_keys_for_comparison(operator.lt),
-    'lte': django_instances_to_keys_for_comparison(lambda a, b: a <= b),
-    'startswith': startswith,
+    'exact':       exact,
+    'iexact':      iexact,
+    'contains':    contains,
+    'icontains':   icontains,
+    'in':          in_func,
+    'gt':          django_instances_to_keys_for_comparison(operator.gt),
+    'gte':         django_instances_to_keys_for_comparison(lambda a, b: a >= b),
+    'lt':          django_instances_to_keys_for_comparison(operator.lt),
+    'lte':         django_instances_to_keys_for_comparison(lambda a, b: a <= b),
+    'startswith':  startswith,
     'istartswith': istartswith,
-    'endswith': endswith,
-    'iendswith': iendswith,
-    'range': range_func,
-    'year': year,
-    'month': date_lookup(lambda dt, month: dt.month == month),
-    'day': date_lookup(lambda dt, day: dt.day == day),
-    'week_day': date_lookup(lambda dt, week_day: dt.isoweekday() == week_day),
-    'hour': date_lookup(lambda dt, hour: dt.hour == hour),
-    'minute': date_lookup(lambda dt, minute: dt.minute == minute),
-    'second': date_lookup(lambda dt, second: dt.second == second),
-    'isnull': date_lookup(lambda val, isnull: (val is None) == bool(isnull)),
-    'search': contains,
-    'regex': regex,
-    'iregex': iregex,
+    'endswith':    endswith,
+    'iendswith':   iendswith,
+    'range':       range_func,
+    'year':        year,
+    'month':       date_lookup(lambda dt, month: dt.month == month),
+    'day':         date_lookup(lambda dt, day: dt.day == day),
+    'week_day':    date_lookup(lambda dt, week_day: dt.isoweekday() == week_day),
+    'hour':        date_lookup(lambda dt, hour: dt.hour == hour),
+    'minute':      date_lookup(lambda dt, minute: dt.minute == minute),
+    'second':      date_lookup(lambda dt, second: dt.second == second),
+    'isnull':      date_lookup(lambda val, isnull: (val is None) == bool(isnull)),
+    'search':      contains,
+    'regex':       regex,
+    'iregex':      iregex,
 }
 
 SUPPORTED_LOOKUP_NAMES = LOOKUPS.keys()
-
-VALID_FIELD_LOOKUPS = {
-    'boolean': ['exact', 'in', 'isnull'],
-    'number': ['exact', 'in', 'gt', 'gte', 'lt', 'lte', 'range', 'isnull'],
-    'string': ['exact', 'iexact', 'contains', 'icontains', 'in', 'gt', 'gte', 'lt', 'lte',
-               'startswith', 'istartswith', 'endswith', 'iendswith', 'range', 'isnull', 'search', 'regex', 'iregex'],
-    'date': ['exact', 'in', 'gt', 'gte', 'lt', 'lte', 'range', 'year', 'month', 'day', 'week_day', 'isnull'],
-    'datetime': ['exact', 'in', 'gt', 'gte', 'lt', 'lte', 'range', 'year', 'month', 'day', 'week_day', 'hour', 'minute', 'second', 'isnull']
-}
-
-DATE_TRANSFORM_LOOKUPS = ['year', 'month', 'day', 'week_day', 'hour', 'minute', 'second']
 
 
 def evaluate_lookup(lookup, obj_value, query_value):
