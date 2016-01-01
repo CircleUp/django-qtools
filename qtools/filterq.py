@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models.query_utils import Q
 
 from .exceptions import NoOpFilterException
 from .lookups import evaluate_lookup, SUPPORTED_LOOKUP_NAMES
@@ -13,15 +14,18 @@ def filter_by_q(objs, q):
 def obj_matches_q(obj, q):
     """Returns True if obj matches the Q object"""
     for child in q.children:
-        filter_statement, value = child
-        r = obj_matches_filter_statement(obj, filter_statement, value)
+        if isinstance(child, Q):
+            r = obj_matches_q(obj, child)
+        else:
+            filter_statement, value = child
+            r = obj_matches_filter_statement(obj, filter_statement, value)
 
         if q.connector == q.AND and not r:
             return False
         elif q.connector == q.OR and r:
             return True
 
-        return q.connector == q.AND
+    return q.connector == q.AND
 
 
 def obj_matches_filter_statement(obj, filter_statement, filter_value):
