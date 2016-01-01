@@ -9,7 +9,7 @@ from django.db.models.query_utils import Q
 from django.test.testcases import TransactionTestCase
 from django.utils import timezone
 from qtools.exceptions import InvalidFieldLookupCombo, InvalidLookupUsage, InvalidLookupValue
-from qtools.filterq import obj_matches_q
+from qtools.filterq import obj_matches_q, filter_by_q
 from qtools.lookups import SUPPORTED_LOOKUP_NAMES
 
 from main.models import MiscModel
@@ -18,6 +18,10 @@ MATCHES_NOTHING = object()
 
 
 class DoesNotMatchDbExecution(Exception):
+    pass
+
+
+class LookupDoesNotMatchDbExecution(DoesNotMatchDbExecution):
     def __init__(self, lookup_name, field_name, obj_value, filter_value, db_result, py_result, saved_db_value, sql):
         self.lookup_name = lookup_name
         self.field_name = field_name
@@ -95,7 +99,7 @@ class QInPythonTestCase(TransactionTestCase):
             if isinstance(py_matches, Exception):
                 py_matches = obj_matches_q(saved_m, q)
 
-        raise DoesNotMatchDbExecution(
+        raise LookupDoesNotMatchDbExecution(
             lookup_name=lookup_name,
             field_name=field_name,
             obj_value=obj_value,
@@ -242,10 +246,24 @@ class QInPythonTestCase(TransactionTestCase):
         ]
         return interesting_values
 
+    def assert_q_executes_the_same_in_python_and_sql(self, model, q):
+        all = model.objects.all()
+        db_filtered = model.objects.filter(q)
+        mem_filtered = filter_by_q(all, q)
+        if set(db_filtered) != set(mem_filtered):
+            raise DoesNotMatchDbExecution()
+
 
 class TestLookups(QInPythonTestCase):
     def test_nested_q_object_handling(self):
-        raise NotImplementedError()
+        m1 = MiscModel(text='hello', integer=5)
+        m1.save()
+
+        m2 = MiscModel(text='goodbye', integer=50)
+        m2.save()
+
+        q = Q(text='hola') | (Q(integer__gt=49) & Q(text='goodbye') & Q(integer__lt=500)) | Q(text__gt='zzzzzzzzzzzzz')
+        self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q)
 
     def test_many_to_many(self):
         raise NotImplementedError()
