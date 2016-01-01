@@ -15,7 +15,7 @@ import operator
 import re
 from functools import partial
 
-from .exceptions import InvalidLookupUsage
+from .exceptions import InvalidLookupValue
 from .utils import django_instances_to_keys_for_comparison, date_lookup, to_str
 
 
@@ -63,7 +63,7 @@ def year(dt, yr):
 def regex(text, pattern, flags=0):
     REGEX_TYPE = type(re.compile(''))
     if not isinstance(pattern, (REGEX_TYPE, basestring)):
-        raise InvalidLookupUsage('Must use a string or compiled pattern with the regex lookup.')
+        raise InvalidLookupValue('Must use a string or compiled pattern with the regex lookup.')
 
     if text is None:
         return False
@@ -89,7 +89,7 @@ def in_func(needle, haystack):
 
 def range_func(value, rng):
     if len(rng) != 2:
-        raise InvalidLookupUsage('Range lookup must receive a (min, max) tuple.')
+        raise InvalidLookupValue('Range lookup must receive a (min, max) tuple.')
 
     if value is None:
         return False
@@ -137,6 +137,9 @@ def istartswith(text, beginning):
     return text.startswith(beginning)
 
 
+def isnull(val, is_null):
+    return (val is None) == bool(is_null)
+
 LOOKUPS = {
     'exact':       exact,
     'iexact':      iexact,
@@ -155,11 +158,14 @@ LOOKUPS = {
     'year':        year,
     'month':       date_lookup(lambda dt, month: dt.month == month),
     'day':         date_lookup(lambda dt, day: dt.day == day),
-    'week_day':    date_lookup(lambda dt, week_day: dt.isoweekday() == week_day),
+    # week day stuff
+    # https://code.djangoproject.com/ticket/10345
+    # https://code.djangoproject.com/ticket/7672#comment:3
+    'week_day':    date_lookup(lambda dt, week_day: dt.date().isoweekday()+1 == week_day),
     'hour':        date_lookup(lambda dt, hour: dt.hour == hour),
     'minute':      date_lookup(lambda dt, minute: dt.minute == minute),
     'second':      date_lookup(lambda dt, second: dt.second == second),
-    'isnull':      date_lookup(lambda val, isnull: (val is None) == bool(isnull)),
+    'isnull':      isnull,
     'search':      contains,
     'regex':       regex,
     'iregex':      iregex,

@@ -3,7 +3,7 @@ import datetime
 from django.db import connection, models
 from django.db.backends.utils import typecast_timestamp
 
-from .exceptions import InvalidLookupUsage
+from .exceptions import InvalidFieldLookupCombo
 
 
 def _django_instances_to_keys(*objs):
@@ -32,7 +32,7 @@ def assert_is_valid_lookup_for_field(lookup, field):
     if simple_type in VALID_FIELD_LOOKUPS:
 
         if lookup not in VALID_FIELD_LOOKUPS[simple_type]:
-            raise InvalidLookupUsage('Using the %s lookup on a %s field is not supported.' % (lookup, simple_type))
+            raise InvalidFieldLookupCombo('Using the %s lookup on a %s field is not supported.' % (lookup, simple_type))
 
 
 def django_instances_to_keys_for_comparison(fn):
