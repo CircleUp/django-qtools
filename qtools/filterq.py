@@ -13,6 +13,8 @@ def filter_by_q(objs, q):
 
 def obj_matches_q(obj, q):
     """Returns True if obj matches the Q object"""
+
+    does_it_match = q.connector == q.AND
     for child in q.children:
         if isinstance(child, Q):
             r = obj_matches_q(obj, child)
@@ -21,11 +23,16 @@ def obj_matches_q(obj, q):
             r = obj_matches_filter_statement(obj, filter_statement, value)
 
         if q.connector == q.AND and not r:
-            return False
+            does_it_match = False
+            break
         elif q.connector == q.OR and r:
-            return True
+            does_it_match = True
+            break
 
-    return q.connector == q.AND
+    if q.negated:
+        does_it_match = not does_it_match
+
+    return does_it_match
 
 
 def obj_matches_filter_statement(obj, filter_statement, filter_value):

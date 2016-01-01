@@ -29,3 +29,6 @@ class MiscModel(models.Model):
     datetime = models.DateTimeField(null=True)
     foreign = models.ForeignKey('self', null=True, default=None)
     many = models.ManyToManyField('self')
+
+    def __repr__(self):
+        return '<MiscModel: %s>' % str(self.pk)

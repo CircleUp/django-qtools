@@ -251,7 +251,7 @@ class QInPythonTestCase(TransactionTestCase):
         db_filtered = model.objects.filter(q)
         mem_filtered = filter_by_q(all, q)
         if set(db_filtered) != set(mem_filtered):
-            raise DoesNotMatchDbExecution()
+            raise DoesNotMatchDbExecution("%s != %s" % (repr(db_filtered), repr(mem_filtered)))
 
 
 class TestLookups(QInPythonTestCase):
@@ -264,6 +264,17 @@ class TestLookups(QInPythonTestCase):
 
         q = Q(text='hola') | (Q(integer__gt=49) & Q(text='goodbye') & Q(integer__lt=500)) | Q(text__gt='zzzzzzzzzzzzz')
         self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q)
+
+    def test_q_negation(self):
+        MiscModel(text='hello', integer=5).save()
+        MiscModel().save()
+
+        q = ~Q(text='hello')
+        self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q)
+
+        q = ~Q(text='goodbye')
+        self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q)
+
 
     def test_many_to_many(self):
         raise NotImplementedError()
