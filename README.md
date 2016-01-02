@@ -146,14 +146,14 @@ Q(order__price=500) == nested_q('order', Q(price=500))
   - [ ] CircleUp recruiting blurb
   - [ ] Mention of libraries worked on
 
-** Version 1.0 **
+**Version 1.0**
 - [ ] More tests
 - [ ] Testing across environments (django and python versions)
 - [ ] Automatic testing
 - [ ] Generated docs - hosted somewhere
 - [ ] Open source package and make it accessible via pip
  
-** Future **
+**Future**
 - [ ] Complete in-memory QuerySet replacement
 - [ ] Switch into different compatibility modes depending on db (mysql, sqlite, postgres)
 - [ ] Replace db backend for faster tests
