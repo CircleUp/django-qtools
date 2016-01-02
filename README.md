@@ -15,14 +15,65 @@ Standard Django forces business logic to be repeated as it's used in different c
 ```python
 from django.db import models
 
+class OrderQuerySet(QMethodQuerySet):
+    @q_method
+    def is_delivered(self):
+        return Q(delivered_time__isnull=False)
+
+class Order(models.Model):
+    name_on_order = models.CharField(max_length=75)
+    price = models.DecimalField(decimal_places=4, max_digits=10)
+    delivered_time = models.DateTimeField(null=True)
+
+    objects = OrderQuerySet.as_manager()
+
+class PizzaQuerySet(QMethodQuerySet):
+    @q_method
+    def is_delivered(self):
+        return nested_q('order', OrderQuerySet.is_delivered.q())
+
+
+class Pizza(models.Model):
+    created = models.DateTimeField()
+    order = models.ForeignKey(Order, null=True)
+    diameter = models.FloatField()
+
+    objects = PizzaQuerySet.as_manager()
+
+    @property
+    def is_delivered(self):
+        return obj_matches_q(self, PizzaQuerySet.is_delivered.q())
+
 class Pizza(models.Model, MatchesQMixin):
     delivered = models.DateTimeField()
 
     def is_delivered(self):
         return self.matches_q(Q(delivered__isnull=False))
 
-```
+ order = Order(price=100, name_on_order='Bob')
+ pizza = Pizza(diameter=12, order=order, created=timezone.now())
+ 
+ order.save()
+ pizza.save()
 
+ self.assertEqual(0, Pizza.objects.is_delivered().count())
+ self.assertEqual(0, Order.objects.is_delivered().count())
+ self.assertFalse(pizza.is_delivered)
+
+ order.delivered_time = timezone.now()
+ order.save()
+
+ self.assertEqual(1, Order.objects.is_delivered().count())
+ self.assertEqual(1, Pizza.objects.is_delivered().count())
+ self.assertTrue(pizza.is_delivered)
+
+```
+## API
+
+#### @q_method decorator
+#### filter_by_q(objs, q)
+#### obj_matches_q(obj, q)
+#### Helpers
 ## How
 
 Most db queries can be written as django `Q` objects. In principle, there is no reason that the Q objects could not be executed in python as well.  Even if we can't handle all use cases, handling most of them and clearly enumerating the limitations would still be very useful.
