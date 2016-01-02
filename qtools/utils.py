@@ -99,5 +99,7 @@ def nested_q(prefix, q_obj):
         q = q_obj.clone()
         q.children = [nested_q(prefix, child) for child in q.children]
         return q
-    key, value = q_obj
-    return prefix + '__' + key, value
+    elif isinstance(q_obj, tuple):
+        key, value = q_obj
+        return prefix + '__' + key, value
+    raise Exception("Not a Q object")

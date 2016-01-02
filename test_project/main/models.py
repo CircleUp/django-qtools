@@ -1,13 +1,13 @@
 from datetime import timedelta
 
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.utils import timezone
-from qtools import QMethodQuerySet, q_method, nested_q
+from qtools import q_method, nested_q
 from qtools.filterq import obj_matches_q
 
 
-class OrderQuerySet(QMethodQuerySet):
+class OrderQuerySet(QuerySet):
     @q_method
     def is_delivered(self):
         return Q(delivered_time__isnull=False)
@@ -34,7 +34,7 @@ class Topping(models.Model):
     is_gluten_free = models.BooleanField(True)
 
 
-class PizzaQuerySet(QMethodQuerySet):
+class PizzaQuerySet(QuerySet):
     @q_method
     def is_delivered(self):
         return nested_q('order', OrderQuerySet.is_delivered.q())

@@ -5,6 +5,7 @@ from django.test.testcases import TestCase
 from django.utils import timezone
 
 from main.models import Order, Pizza, OrderQuerySet
+from qtools import nested_q
 
 
 class QMethodDecoratorTests(TestCase):
@@ -60,7 +61,6 @@ class QMethodDecoratorTests(TestCase):
         order.save()
 
         self.assertEqual(1, Pizza.objects.is_delivered().count())
-        self.assertEqual(1, Pizza.objects.filter(order__qmatches=OrderQuerySet.is_delivered.q()).count())
 
     def test_valid_api_works(self):
         Order(price=100).save()
@@ -68,11 +68,17 @@ class QMethodDecoratorTests(TestCase):
         # valid api
         self.assertIsInstance(Order.objects.cost_between(lower=50), models.QuerySet)
         self.assertIsInstance(OrderQuerySet.cost_between.q(lower=50), models.Q)
-        Pizza.objects.filter(order__qmatches=OrderQuerySet.cost_between.q(lower=50) & Order.objects.cost_between.q(upper=200000))
+        q1 = OrderQuerySet.cost_between.q(lower=50)
+        q2 = OrderQuerySet.cost_between.q(upper=200000)
+        Pizza.objects.filter(nested_q('order', q1 & q2))
 
         # invalid api
-        with self.assertRaisesRegexp(TypeError, 'requires Q objects'):
-            Pizza.objects.filter(order__qmatches=Order.objects.cost_between(0, 500))  # qmatches requires Q objects
+        with self.assertRaisesRegexp(Exception, 'Not a Q object'):
+            Pizza.objects.filter(nested_q('order', Order.objects.cost_between(0, 500)))
+
+        # invalid api
+        with self.assertRaisesRegexp(AttributeError, 'no attribute'):
+            q2 = Order.objects.cost_between.q(upper=200000)
 
     def test_q_methods_do_not_leak_across_instances(self):
         """
