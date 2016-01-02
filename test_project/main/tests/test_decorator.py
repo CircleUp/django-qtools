@@ -8,8 +8,7 @@ from __future__ import unicode_literals
 from django.db import models
 from django.test.testcases import TestCase
 
-from qtools.decorator import QMethodQuerySet, q_method
-from qtools.utils import nested_q
+from qtools import nested_q, q_method, QMethodQuerySet
 # from main.models.company import Company
 # from main.models.investment import Investment
 # from main.tests.model_factories.misc import InvestmentFactory

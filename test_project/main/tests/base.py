@@ -6,8 +6,8 @@ from django.core.exceptions import ValidationError
 from django.db import transaction, IntegrityError
 from django.db.models import Q
 from django.utils import timezone
+from qtools import filter_by_q
 from qtools.exceptions import InvalidLookupUsage, InvalidLookupValue, InvalidFieldLookupCombo
-from qtools.filterq import obj_matches_q, filter_by_q
 
 from main.models import MiscModel
 

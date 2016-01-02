@@ -4,8 +4,8 @@ import unittest
 from django.db.models.query_utils import Q
 from django.test.testcases import TransactionTestCase, TestCase
 from django.utils import timezone
+from qtools import obj_matches_q
 from qtools.exceptions import InvalidLookupUsage
-from qtools.filterq import obj_matches_q
 from qtools.lookups import SUPPORTED_LOOKUP_NAMES
 
 from main.models import MiscModel
