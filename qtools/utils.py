@@ -95,7 +95,7 @@ def nested_q(prefix, q_obj):
         q2 = Q(user__name='Bob')
         assert q1 == q2
     """
-    if isinstance(q_obj, Q):
+    if isinstance(q_obj, models.Q):
         q = q_obj.clone()
         q.children = [nested_q(prefix, child) for child in q.children]
         return q

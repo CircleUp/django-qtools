@@ -15,6 +15,10 @@ class OrderQuerySet(QMethodQuerySet):
     def delivered_in_last_x_days(self, days):
         return Q(delivered_time__gt=timezone.now() - timedelta(days=days))
 
+    @q_method
+    def cost_between(self, lower=0, upper=100000):
+        return Q(price__gte=lower, price__lte=upper)
+
 
 class Order(models.Model):
     name_on_order = models.CharField(max_length=75)
@@ -33,6 +37,10 @@ class PizzaQuerySet(QMethodQuerySet):
     @q_method
     def is_delivered(self):
         return nested_q('order', OrderQuerySet.is_delivered.q())
+
+    @q_method
+    def delivered_in_last_x_days(self, days):
+        return nested_q('order', OrderQuerySet.delivered_in_last_x_days.q(days))
 
 
 class Pizza(models.Model):
