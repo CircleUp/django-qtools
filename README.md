@@ -91,7 +91,7 @@ Pizza.objects.filter(nested_q('order', OrderQuerySet.is_delivered.q()))
 
 - **filter_by_q(objs, q)**
 
-Filter a collection of django instances by a Q object.
+Filter a collection of django instances by a Q object. Note that if the fields used in the filter haven't been prefetched then calls to the database will still occur (and probably a lot of them).
 
 ```python
 from qtools import filter_by_q
@@ -119,18 +119,10 @@ from qtools import nested_q
 
 Q(order__price=500) == nested_q('order', Q(price=500))
 ```
-## How
-
-Most db queries can be written as django `Q` objects. In principle, there is no reason that the Q objects could not be executed in python as well.  Even if we can't handle all use cases, handling most of them and clearly enumerating the limitations would still be very useful.
-
-Details
-  - This library will cause N queries if not used with prefetch related. That's okay and it's the developers responsibility to make the appropriate prefetches.
-  - Handling filtering on the attributes of the base object should be straight forward enough. Its handling the related objects that'll be tricky.
-
-
 
 ## To Do
 
+**Version 0.9**
 - [x] Study and evaluate Lookupy and django-test-db
 - [x] Enumerate test cases
 - [x] Design API
@@ -153,7 +145,18 @@ Details
   - [ ] How to Contribute section
   - [ ] CircleUp recruiting blurb
   - [ ] Mention of libraries worked on
+
+** Version 1.0 **
+- [ ] More tests
+- [ ] Testing across environments (django and python versions)
+- [ ] Automatic testing
+- [ ] Generated docs - hosted somewhere
 - [ ] Open source package and make it accessible via pip
+ 
+** Future **
+- [ ] Complete in-memory QuerySet replacement
+- [ ] Switch into different compatibility modes depending on db (mysql, sqlite, postgres)
+- [ ] Replace db backend for faster tests
 
 ### Similar Libraries
 
