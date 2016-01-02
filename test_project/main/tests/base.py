@@ -5,7 +5,6 @@ from decimal import InvalidOperation
 from django.core.exceptions import ValidationError
 from django.db import transaction, IntegrityError
 from django.db.models import Q
-from django.test import TransactionTestCase
 from django.utils import timezone
 from qtools.exceptions import InvalidLookupUsage, InvalidLookupValue, InvalidFieldLookupCombo
 from qtools.filterq import obj_matches_q, filter_by_q
@@ -13,10 +12,19 @@ from qtools.filterq import obj_matches_q, filter_by_q
 from main.models import MiscModel
 
 MATCHES_NOTHING = object()
+NOT_SET = object()
 
 
 class DoesNotMatchDbExecution(Exception):
-    pass
+    def __init__(self, q, db_result, py_result, sql):
+        self.q = q
+        self.db_result = db_result
+        self.py_result = py_result
+        self.sql = str(sql)
+
+    def __str__(self):
+        fail_msg = "%s did not execute the same in db and python  <db-result: %s> != <py-result: %s>  sql: %s"
+        return fail_msg % (repr(self.q), repr(self.db_result), repr(self.py_result), self.sql)
 
 
 class LookupDoesNotMatchDbExecution(DoesNotMatchDbExecution):
@@ -30,7 +38,7 @@ class LookupDoesNotMatchDbExecution(DoesNotMatchDbExecution):
         self.saved_db_value = saved_db_value
         self.sql = str(sql)
 
-    def description(self):
+    def __str__(self):
         fail_msg = "Failed: (%s)%s__%s=%s  <db-result: %s> != <py-result: %s> saved_db_value=%s sql: %s"
         return fail_msg % (
             repr(self.obj_value), self.field_name, self.lookup_name,
@@ -44,7 +52,7 @@ class InvalidDbState(Exception):
     pass
 
 
-class QInPythonTestCase(TransactionTestCase):
+class QInPythonTestCaseMixin(object):
     def assert_lookup_works(self, lookup_name, field_name, obj_value, filter_value, fail_fast=False):
         MiscModel.objects.all().delete()
         obj_value = create_test_value(obj_value)
@@ -56,57 +64,27 @@ class QInPythonTestCase(TransactionTestCase):
                 m.save()
                 saved_m = MiscModel.objects.get(id=m.id)
                 saved_value = getattr(saved_m, field_name)
-
         except (IntegrityError, ValueError, ValidationError, TypeError, ValueError, InvalidOperation), e:
             # we aren't testing which field values are valid to save in the db, so we'll skip these cases
             transaction.rollback()
             raise InvalidDbState(str(e))
+
         filter_statement = field_name + '__' + lookup_name
         q = Q(**{filter_statement: filter_value})
-        db_query = ''
-        try:
-            qs = MiscModel.objects.filter(q)
-            db_matches = len(qs.filter(id=m.id)) == 1
-            try:
-                db_query = str(qs.query)
-            except Exception:
-                pass
-        except Exception, db_e:
-            db_matches = db_e
 
         try:
-            py_matches = obj_matches_q(saved_m, q)
-        except InvalidLookupUsage:
-            raise
-        except Exception, py_e:
-            py_matches = py_e
-
-        if isinstance(db_matches, Exception) and isinstance(py_matches, Exception):
-            # both versions had an exception, which is okay
-            return
-
-        if db_matches == py_matches:
-            # each type of execution had the same result
-            return
-
-        if fail_fast:
-            # try to recreate the exception
-            if isinstance(db_matches, Exception):
-                qs = MiscModel.objects.filter(q)
-                db_matches = len(qs.filter(id=m.id)) == 1
-            if isinstance(py_matches, Exception):
-                py_matches = obj_matches_q(saved_m, q)
-
-        raise LookupDoesNotMatchDbExecution(
-            lookup_name=lookup_name,
-            field_name=field_name,
-            obj_value=obj_value,
-            filter_value=filter_value,
-            db_result=db_matches,
-            py_result=py_matches,
-            saved_db_value=saved_value,
-            sql=str(db_query)
-        )
+            self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q, raise_original_exceptions=fail_fast)
+        except DoesNotMatchDbExecution, e:
+            raise LookupDoesNotMatchDbExecution(
+                lookup_name=lookup_name,
+                field_name=field_name,
+                obj_value=obj_value,
+                filter_value=filter_value,
+                db_result=e.db_result,
+                py_result=e.py_result,
+                saved_db_value=saved_value,
+                sql=e.sql
+            )
 
     def assert_lookups_work(self, field_names, lookup_names, test_values, fail_fast=False, skip_first=0):
         does_not_match_db_exceptions = []
@@ -159,7 +137,7 @@ class QInPythonTestCase(TransactionTestCase):
                         except DoesNotMatchDbExecution, e:
                             does_not_match_db_exceptions.append(e)
                             print ''
-                            print e, e.description()
+                            print e
                             if fail_fast:
                                 raise
                         else:
@@ -167,7 +145,7 @@ class QInPythonTestCase(TransactionTestCase):
         print ''
         print "Passed %s lookup tests and failed %s tests." % (tested_and_passed_count, len(does_not_match_db_exceptions))
         if does_not_match_db_exceptions:
-            raise Exception(',\n'.join([e.description() for e in does_not_match_db_exceptions]))
+            raise Exception(',\n'.join(does_not_match_db_exceptions))
 
     def generate_test_value_pairs(self):
         now = datetime.datetime.now()
@@ -244,12 +222,43 @@ class QInPythonTestCase(TransactionTestCase):
         ]
         return interesting_values
 
-    def assert_q_executes_the_same_in_python_and_sql(self, model, q):
-        all = list(model.objects.all())
-        db_filtered = list(model.objects.filter(q))
-        mem_filtered = filter_by_q(all, q)
-        if set(db_filtered) != set(mem_filtered):
-            raise DoesNotMatchDbExecution("%s != %s" % (repr(db_filtered), repr(mem_filtered)))
+    def assert_q_executes_the_same_in_python_and_sql(self, model, q, expected_count=NOT_SET, raise_original_exceptions=False):
+        all_objs = list(model.objects.all())
+
+        try:
+            qs = model.objects.filter(q)
+            db_result = list(qs)
+        except Exception, db_result:
+            pass
+
+        try:
+            mem_result = filter_by_q(all_objs, q)
+        except InvalidLookupUsage:
+            raise
+        except Exception, mem_result:
+            pass
+
+        if isinstance(db_result, Exception) and isinstance(mem_result, Exception):
+            return
+
+        if raise_original_exceptions and (isinstance(db_result, Exception) or isinstance(mem_result, Exception)):
+            raise
+
+        if set(db_result) != set(mem_result):
+            try:
+                sql = str(qs.query)
+            except:
+                sql = ''
+
+            raise DoesNotMatchDbExecution(
+                q=q,
+                db_result=db_result,
+                py_result=mem_result,
+                sql=sql
+            )
+
+        if expected_count != NOT_SET and expected_count != len(mem_result):
+            raise Exception('Did not behave as expected.')
 
 
 def create_test_value(value):

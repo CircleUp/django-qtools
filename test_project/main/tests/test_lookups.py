@@ -2,23 +2,17 @@
 import unittest
 
 from django.db.models.query_utils import Q
+from django.test.testcases import TransactionTestCase, TestCase
 from django.utils import timezone
 from qtools.exceptions import InvalidLookupUsage
 from qtools.filterq import obj_matches_q
-from qtools.lookups import SUPPORTED_LOOKUP_NAMES, evaluate_lookup
+from qtools.lookups import SUPPORTED_LOOKUP_NAMES
 
 from main.models import MiscModel
-from .base import QInPythonTestCase
+from .base import QInPythonTestCaseMixin
 
 
-class TestLookups(QInPythonTestCase):
-    @unittest.skip("Takes too long to run")
-    def test_all_lookups_basic(self):
-        field_names = ['nullable_boolean', 'boolean', 'integer', 'float', 'decimal', 'text', 'date', 'datetime', 'foreign', 'many']
-        test_values = list(self.generate_test_value_pairs())
-        lookup_names = SUPPORTED_LOOKUP_NAMES
-
-        self.assert_lookups_work(field_names, lookup_names, test_values, fail_fast=False, skip_first=0)
+class TestLookups(TestCase, QInPythonTestCaseMixin):
 
     def test_invalid_usage_regex(self):
         m = MiscModel()
@@ -36,3 +30,12 @@ class TestLookups(QInPythonTestCase):
         assert obj_matches_q(m, Q(text__iexact='A'))
         assert not obj_matches_q(m, Q(text__exact='A'))
 
+
+class TestLookupsBulk(TransactionTestCase, QInPythonTestCaseMixin):
+    @unittest.skip("Takes too long to run")
+    def test_all_lookups_basic(self):
+        field_names = ['nullable_boolean', 'boolean', 'integer', 'float', 'decimal', 'text', 'date', 'datetime', 'foreign', 'many']
+        test_values = list(self.generate_test_value_pairs())
+        lookup_names = SUPPORTED_LOOKUP_NAMES
+
+        self.assert_lookups_work(field_names, lookup_names, test_values, fail_fast=False, skip_first=0)

@@ -1,13 +1,14 @@
 # coding=utf-8
 
 from django.db.models.query_utils import Q
+from django.test.testcases import TestCase
 from django.utils import timezone
 
 from main.models import MiscModel
-from .base import QInPythonTestCase
+from .base import QInPythonTestCaseMixin
 
 
-class TestLookups(QInPythonTestCase):
+class TestLookups(TestCase, QInPythonTestCaseMixin):
     def test_everything_together(self):
         m1 = MiscModel(text='hello', integer=5)
         m1.save()
