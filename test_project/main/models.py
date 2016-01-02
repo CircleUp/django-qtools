@@ -1,9 +1,27 @@
+from datetime import timedelta
+
 from django.db import models
+from django.db.models import Q
+from django.utils import timezone
+from qtools import QMethodQuerySet, q_method, nested_q
+
+
+class OrderQuerySet(QMethodQuerySet):
+    @q_method
+    def is_delivered(self):
+        return Q(delivered_time__isnull=False)
+
+    @q_method
+    def delivered_in_last_x_days(self, days):
+        return Q(delivered_time__gt=timezone.now() - timedelta(days=days))
 
 
 class Order(models.Model):
     name_on_order = models.CharField(max_length=75)
-    price = models.DecimalField(decimal_places = 4, max_digits = 10)
+    price = models.DecimalField(decimal_places=4, max_digits=10)
+    delivered_time = models.DateTimeField(null=True)
+
+    objects = OrderQuerySet.as_manager()
 
 
 class Topping(models.Model):
@@ -11,11 +29,19 @@ class Topping(models.Model):
     is_gluten_free = models.BooleanField(True)
 
 
+class PizzaQuerySet(QMethodQuerySet):
+    @q_method
+    def is_delivered(self):
+        return nested_q('order', OrderQuerySet.is_delivered.q())
+
+
 class Pizza(models.Model):
     created = models.DateTimeField()
     order = models.ForeignKey(Order, null=True)
     diameter = models.FloatField()
     toppings = models.ManyToManyField(Topping)
+
+    objects = PizzaQuerySet.as_manager()
 
 
 class MiscModel(models.Model):
