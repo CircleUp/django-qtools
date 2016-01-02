@@ -4,6 +4,7 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 from qtools import QMethodQuerySet, q_method, nested_q
+from qtools.filterq import obj_matches_q
 
 
 class OrderQuerySet(QMethodQuerySet):
@@ -42,6 +43,10 @@ class PizzaQuerySet(QMethodQuerySet):
     def delivered_in_last_x_days(self, days):
         return nested_q('order', OrderQuerySet.delivered_in_last_x_days.q(days))
 
+    @q_method
+    def is_delivered_using_self(self):
+        return self.is_delivered.q()
+
 
 class Pizza(models.Model):
     created = models.DateTimeField()
@@ -50,6 +55,10 @@ class Pizza(models.Model):
     toppings = models.ManyToManyField(Topping)
 
     objects = PizzaQuerySet.as_manager()
+
+    @property
+    def is_delivered(self):
+        return obj_matches_q(self, PizzaQuerySet.is_delivered.q())
 
 
 class MiscModel(models.Model):

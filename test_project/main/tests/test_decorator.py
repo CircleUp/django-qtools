@@ -8,6 +8,17 @@ from main.models import Order, Pizza, OrderQuerySet
 
 
 class QMethodDecoratorTests(TestCase):
+
+    def test_q_method_cant_use_self(self):
+        order = Order(price=100)
+        order.save()
+
+        pizza = Pizza(diameter=12, order=order, created=timezone.now())
+        pizza.save()
+
+        with self.assertRaisesRegexp(Exception, 'q_method'):
+            Pizza.objects.is_delivered_using_self()
+
     def test_q_method_with_args(self):
         """Test whether q method can handle args and kwargs"""
         amount = 100

@@ -7,6 +7,9 @@ from .utils import nested_q
 
 LOOKUP_NAME = '__qmatches'
 
+class ThrowExceptionIfUsed(object):
+    def __getattribute__(self, item):
+        raise Exception('The self parameter cannot be used in methods decorated with q_method.')
 
 class QMethod(object):
     """
@@ -16,7 +19,7 @@ class QMethod(object):
     def __init__(self, q_method_obj=None):
         self.q_method = q_method_obj
         self.__doc__ = q_method_obj.__doc__
-        self.q = partial(q_method_obj, models.Q)
+        self.q = partial(q_method_obj, ThrowExceptionIfUsed())
 
     def __get__(self, obj, parent_class=None):
         if obj is None:
@@ -25,11 +28,10 @@ class QMethod(object):
 
         if issubclass(parent_class, models.QuerySet):
             # decorator used on queryset method
+
             def qs_func(*args, **kwargs):
                 return obj.filter(self.q(*args, **kwargs))
-
             qs_func.q = self.q
-
             return qs_func
         else:
             raise Exception('the @q_method decorator should only be used on QuerySets')

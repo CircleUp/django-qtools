@@ -4,11 +4,29 @@ from django.db.models.query_utils import Q
 from django.test.testcases import TestCase
 from django.utils import timezone
 
-from main.models import MiscModel
+from main.models import MiscModel, Order, Pizza
 from .base import QInPythonTestCaseMixin
 
 
 class TestLookups(TestCase, QInPythonTestCaseMixin):
+    def test_example(self):
+        order = Order(price=100, name_on_order='Bob')
+        order.save()
+
+        pizza = Pizza(diameter=12, order=order, created=timezone.now())
+        pizza.save()
+
+        self.assertEqual(0, Pizza.objects.is_delivered().count())
+        self.assertEqual(0, Order.objects.is_delivered().count())
+        self.assertFalse(pizza.is_delivered)
+
+        order.delivered_time = timezone.now()
+        order.save()
+
+        self.assertEqual(1, Order.objects.is_delivered().count())
+        self.assertEqual(1, Pizza.objects.is_delivered().count())
+        self.assertTrue(pizza.is_delivered)
+
     def test_everything_together(self):
         m1 = MiscModel(text='hello', integer=5)
         m1.save()
