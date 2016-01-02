@@ -35,22 +35,30 @@ Details
 
 ## To Do
 
-- [ ] Study and evaluate Lookupy and django-test-db
+- [x] Study and evaluate Lookupy and django-test-db
 - [x] Enumerate test cases
 - [ ] Design API
 - [ ] Write test cases
-  - [ ] Lookups
-  - [ ] Related object traversal and filtering
+  - [x] Lookups
+  - [x] Related object traversal and filtering
+  - [x] QuerySets based on Q objects
+  - [ ] tox.ini for multiple versions of python?
 - [ ] Write code
   - [x] lookups
-  - [ ] related object traversal and filtering code
+  - [x] related object traversal and filtering code
   - [ ] matches_q model method
+  - [x] querysets based on Q objects
 - [ ] Test cases pass
-  - [ ] Lookups
-  - [ ] Related object traversal and filtering
+  - [x] Lookups
+  - [x] Related object traversal and filtering
   - [ ] mysql and sqlite
-- [ ] Combine with QuerySet q_method code
+  - [ ] querysets based on Q objects
 - [ ] Write documentation, instructions on how to test.
+  - [ ] Good/Bad Example
+  - [ ] Best Practices section
+  - [ ] How to Contribute section
+  - [ ] CircleUp recruiting blurb
+  - [ ] Mention of libraries worked on
 - [ ] Open source package and make it accessible via pip
 
 ### Similar Libraries
