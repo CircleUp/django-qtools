@@ -3,13 +3,12 @@ from __future__ import unicode_literals
 from django.db import models
 from django.test.testcases import TestCase
 from django.utils import timezone
+from qtools import nested_q
 
 from main.models import Order, Pizza, OrderQuerySet
-from qtools import nested_q
 
 
 class QMethodDecoratorTests(TestCase):
-
     def test_q_method_cant_use_self(self):
         order = Order(price=100)
         order.save()

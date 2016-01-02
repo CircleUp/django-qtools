@@ -13,7 +13,6 @@ from .base import QInPythonTestCaseMixin
 
 
 class TestLookups(TestCase, QInPythonTestCaseMixin):
-
     def test_invalid_usage_regex(self):
         m = MiscModel()
         m.save()

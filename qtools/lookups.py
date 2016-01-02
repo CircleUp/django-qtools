@@ -140,6 +140,7 @@ def istartswith(text, beginning):
 def isnull(val, is_null):
     return (val is None) == bool(is_null)
 
+
 LOOKUPS = {
     'exact':       exact,
     'iexact':      iexact,
@@ -161,7 +162,7 @@ LOOKUPS = {
     # week day stuff
     # https://code.djangoproject.com/ticket/10345
     # https://code.djangoproject.com/ticket/7672#comment:3
-    'week_day':    date_lookup(lambda dt, week_day: dt.date().isoweekday()+1 == week_day),
+    'week_day':    date_lookup(lambda dt, week_day: dt.date().isoweekday() + 1 == week_day),
     'hour':        date_lookup(lambda dt, hour: dt.hour == hour),
     'minute':      date_lookup(lambda dt, minute: dt.minute == minute),
     'second':      date_lookup(lambda dt, second: dt.second == second),
@@ -176,5 +177,3 @@ SUPPORTED_LOOKUP_NAMES = LOOKUPS.keys()
 
 def evaluate_lookup(lookup, obj_value, query_value):
     return LOOKUPS[lookup](obj_value, query_value)
-
-
