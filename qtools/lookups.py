@@ -176,3 +176,5 @@ SUPPORTED_LOOKUP_NAMES = LOOKUPS.keys()
 
 def evaluate_lookup(lookup, obj_value, query_value):
     return LOOKUPS[lookup](obj_value, query_value)
+
+

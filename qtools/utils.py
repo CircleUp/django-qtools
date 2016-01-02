@@ -84,3 +84,20 @@ def simplify_data_types(db_field_type):
         return 'string'
 
     return _DB_TYPES_SIMPLE_MAP.get(db_field_type, db_field_type)
+
+
+def nested_q(prefix, q_obj):
+    """
+    Prefix the kwargs in a Q object with a given prefix
+
+    For example, these are equivalent:
+        q1 = nested_q('user', Q(name='Bob'))
+        q2 = Q(user__name='Bob')
+        assert q1 == q2
+    """
+    if isinstance(q_obj, Q):
+        q = q_obj.clone()
+        q.children = [nested_q(prefix, child) for child in q.children]
+        return q
+    key, value = q_obj
+    return prefix + '__' + key, value
