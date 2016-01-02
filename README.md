@@ -15,7 +15,7 @@ Standard Django forces business logic to be repeated as it's used in different c
 ```python
 from django.db import models
 
-class OrderQuerySet(QMethodQuerySet):
+class OrderQuerySet(QuerySet):
     @q_method
     def is_delivered(self):
         return Q(delivered_time__isnull=False)
@@ -27,7 +27,7 @@ class Order(models.Model):
 
     objects = OrderQuerySet.as_manager()
 
-class PizzaQuerySet(QMethodQuerySet):
+class PizzaQuerySet(QuerySet):
     @q_method
     def is_delivered(self):
         return nested_q('order', OrderQuerySet.is_delivered.q())
@@ -77,7 +77,7 @@ Allows a queryset method to be defined in terms of Q objects only.
 ```python
 from qtools import q_method
 
-class OrderQuerySet(QMethodQuerySet):
+class OrderQuerySet(QuerySet):
     @q_method
     def is_delivered(self):
         return Q(delivered_time__isnull=False)
@@ -172,7 +172,7 @@ These options were considered.
 from django.db import models
 from pyq import matches_q
 
-class PizzaQuerySet(QMethodQuerySet):
+class PizzaQuerySet(QuerySet):
 
     @q_method
     def delivered(Q):
