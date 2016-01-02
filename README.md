@@ -37,22 +37,20 @@ Details
 
 - [x] Study and evaluate Lookupy and django-test-db
 - [x] Enumerate test cases
-- [ ] Design API
-- [ ] Write test cases
+- [x] Design API
+- [x] Write test cases
   - [x] Lookups
   - [x] Related object traversal and filtering
   - [x] QuerySets based on Q objects
-  - [ ] tox.ini for multiple versions of python?
-- [ ] Write code
+- [x] Write code
   - [x] lookups
   - [x] related object traversal and filtering code
-  - [ ] matches_q model method
-  - [x] querysets based on Q objects
+  - [x] querysets based on Q objects (q_method decorator)
 - [ ] Test cases pass
   - [x] Lookups
   - [x] Related object traversal and filtering
-  - [ ] mysql and sqlite
-  - [ ] querysets based on Q objects
+  - [x] querysets based on Q objects (q_method decorator)
+  - [ ] mysql bulk tested
 - [ ] Write documentation, instructions on how to test.
   - [ ] Good/Bad Example
   - [ ] Best Practices section
@@ -73,7 +71,7 @@ Project | Handles django objects | python/filter exclude | related objects | Q o
 
 
 ### Alternative APIs
-
+These options were considered.
 ```python
 from django.db import models
 from pyq import matches_q
