@@ -1,7 +1,7 @@
 # coding=utf-8
 import datetime
+import unittest
 from decimal import InvalidOperation
-from exceptions import NotImplementedError
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
@@ -247,14 +247,36 @@ class QInPythonTestCase(TransactionTestCase):
         return interesting_values
 
     def assert_q_executes_the_same_in_python_and_sql(self, model, q):
-        all = model.objects.all()
-        db_filtered = model.objects.filter(q)
+        all = list(model.objects.all())
+        db_filtered = list(model.objects.filter(q))
         mem_filtered = filter_by_q(all, q)
         if set(db_filtered) != set(mem_filtered):
             raise DoesNotMatchDbExecution("%s != %s" % (repr(db_filtered), repr(mem_filtered)))
 
 
 class TestLookups(QInPythonTestCase):
+
+    def test_everything_together(self):
+        m1 = MiscModel(text='hello', integer=5)
+        m1.save()
+
+        m2 = MiscModel(text='goodbye', integer=50)
+        m2.save()
+
+        m3 = MiscModel(text='howdy', datetime=timezone.now())
+        m3.save()
+
+        m1.foreign = m2
+        m2.foreign = m3
+        m3.foreign = m1
+
+        m1.save()
+        m2.save()
+        m3.save()
+
+        q = Q(text='hola') | (Q(integer__gt=49) & Q(text='goodbye') & Q(integer__lt=500)) | Q(text__lt='zzzzzzzzzzzzz', miscmodel__miscmodel__miscmodel__miscmodel__foreign__foreign__integer=5)
+        self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q)
+
     def test_nested_q_object_handling(self):
         m1 = MiscModel(text='hello', integer=5)
         m1.save()
@@ -275,15 +297,56 @@ class TestLookups(QInPythonTestCase):
         q = ~Q(text='goodbye')
         self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q)
 
-
-    def test_many_to_many(self):
-        raise NotImplementedError()
-
     def test_related_object(self):
-        raise NotImplementedError()
+        MiscModel().save()
 
-    def test_third_degree_related_object(self):
-        raise NotImplementedError()
+        related = MiscModel(text='goodbye')
+        related.save()
+
+        main = MiscModel(text='hello', foreign=related)
+        main.save()
+
+        q = Q(foreign__text='goodbye')
+        self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q)
+
+    def test_related_object_reverse_relation(self):
+        MiscModel().save()
+        related = MiscModel(text='goodbye').save()
+        MiscModel(text='hello', foreign=related).save()
+        MiscModel(text='hola', foreign=related).save()
+
+        q = Q(miscmodel__text='hello')
+        self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q)
+
+        q = Q(miscmodel__text='adios')
+        self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q)
+
+        q = Q(miscmodel__text='hola')
+        self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q)
+
+    def test_several_degree_related_object(self):
+        m1 = MiscModel(integer=1)
+        m2 = MiscModel(integer=2)
+        m3 = MiscModel(integer=3)
+
+        m1.save()
+        m2.save()
+        m3.save()
+
+        m1.foreign = m2
+        m2.foreign = m3
+        m3.foreign = m1
+
+        m1.save()
+        m2.save()
+        m3.save()
+
+        q = Q(miscmodel__miscmodel__miscmodel__miscmodel__foreign__foreign__integer=2)
+        self.assertEqual(1, MiscModel.objects.filter(q).count())
+        self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q)
+
+        q = Q(miscmodel__miscmodel__miscmodel__miscmodel__foreign__integer=9)
+        self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q)
 
     def test_invalid_usage_regex(self):
         m = MiscModel()
@@ -297,8 +360,11 @@ class TestLookups(QInPythonTestCase):
             self.assert_lookup_works('week_day', 'datetime', now, day)
 
     def test_case_sensitivity(self):
-        pass
+        m = MiscModel(text='a')
+        assert obj_matches_q(m, Q(text__iexact='A'))
+        assert not obj_matches_q(m, Q(text__exact='A'))
 
+    @unittest.skip("Takes too long to run")
     def test_all_lookups_basic(self):
         field_names = ['nullable_boolean', 'boolean', 'integer', 'float', 'decimal', 'text', 'date', 'datetime', 'foreign', 'many']
         test_values = list(self.generate_test_value_pairs())
