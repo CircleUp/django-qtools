@@ -70,10 +70,55 @@ class Pizza(models.Model, MatchesQMixin):
 ```
 ## API
 
-#### @q_method decorator
-#### filter_by_q(objs, q)
-#### obj_matches_q(obj, q)
-#### Helpers
+- **@q_method decorator**
+
+Allows a queryset method to be defined in terms of Q objects only.
+
+```python
+from qtools import q_method
+
+class OrderQuerySet(QMethodQuerySet):
+    @q_method
+    def is_delivered(self):
+        return Q(delivered_time__isnull=False)
+        
+# QuerySets work as normal
+Order.objects.is_delivered()
+
+# but we can access the q objects for use in other locations
+Pizza.objects.filter(nested_q('order', OrderQuerySet.is_delivered.q()))
+```
+
+- **filter_by_q(objs, q)**
+
+Filter a collection of django instances by a Q object.
+
+```python
+from qtools import filter_by_q
+ 
+all_orders = list(Order.objects.all())
+q = Q(delivered_time__isnull=False)
+delivered_orders = filter_by_q(all_orders, q)
+```
+- **obj_matches_q(obj, q)**
+ 
+Return whether a single django object matches a Q object
+```python
+from qtools import obj_matches_q
+
+order = Order(delivered_time=datetime.now())
+q = Q(delivered_time__isnull=False)
+assert obj_matches_q(order, q)
+```
+
+- **nested_q(prefix, q)**
+Prepend the prefix to all arguments in the Q object.
+
+```python
+from qtools import nested_q
+
+Q(order__price=500) == nested_q('order', Q(price=500))
+```
 ## How
 
 Most db queries can be written as django `Q` objects. In principle, there is no reason that the Q objects could not be executed in python as well.  Even if we can't handle all use cases, handling most of them and clearly enumerating the limitations would still be very useful.
