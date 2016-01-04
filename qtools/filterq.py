@@ -5,7 +5,7 @@ from django.db.models.query_utils import Q
 
 from .exceptions import NoOpFilterException
 from .lookups import evaluate_lookup, SUPPORTED_LOOKUP_NAMES
-from .utils import assert_is_valid_lookup_for_field,django_instances_to_keys
+from .utils import assert_is_valid_lookup_for_field, django_instances_to_keys
 
 
 def filter_by_q(objs, q):
