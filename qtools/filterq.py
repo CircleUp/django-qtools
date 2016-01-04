@@ -4,7 +4,7 @@ from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 
 from .exceptions import NoOpFilterException
-from .lookups import evaluate_lookup, SUPPORTED_LOOKUP_NAMES
+from .lookups import get_lookup_adapter
 from .utils import assert_is_valid_lookup_for_field, django_instances_to_keys
 
 
@@ -58,8 +58,9 @@ def obj_matches_filter_statement(obj, filter_statement, filter_value):
     """Returns True if the obj matches the filter statement"""
     next_token, remaining_statement_parts = process_filter_statement(filter_statement)
     lookup = remaining_statement_parts[-1]
+    lookup_adapter = get_lookup_adapter()
     if obj is None:
-        return evaluate_lookup(lookup, obj, filter_value)
+        return lookup_adapter.evaluate_lookup(lookup, obj, filter_value)
 
     # handle QuerySets as arguments
     if isinstance(filter_value, QuerySet):
@@ -83,7 +84,7 @@ def obj_matches_filter_statement(obj, filter_statement, filter_value):
         obj_values = get_model_attribute_values_by_db_name(obj, next_token)
         obj_values = django_instances_to_keys(*obj_values)
         for obj_value in obj_values:
-            r = evaluate_lookup(lookup, obj_value, filter_value)
+            r = lookup_adapter.evaluate_lookup(lookup, obj_value, filter_value)
             if r:
                 return True
         return False
@@ -119,7 +120,8 @@ def process_filter_statement(filter_statement):
     statement_parts = filter_statement.split('__')
 
     lookup = statement_parts[-1]
-    if lookup not in SUPPORTED_LOOKUP_NAMES:
+    lookup_adapter = get_lookup_adapter()
+    if lookup not in lookup_adapter.SUPPORTED_LOOKUP_NAMES:
         lookup = 'exact'
 
     if lookup != statement_parts[-1]:

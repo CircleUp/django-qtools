@@ -1,7 +1,6 @@
 import datetime
 
 from django.db import connection, models
-from django.db.backends.utils import typecast_timestamp
 from django.db.models.fields.related import ForeignObjectRel
 
 from .exceptions import InvalidFieldLookupCombo
@@ -40,27 +39,33 @@ def assert_is_valid_lookup_for_field(lookup, field):
 
 
 def django_instances_to_keys_for_comparison(fn):
-    def wrap_fn(a, b):
+    def wrap_fn(cls, a, b):
         a, b = django_instances_to_keys(a, b)
         if a is None or b is None:
             return False
-        return fn(a, b)
+        return fn(cls, a, b)
 
     return wrap_fn
 
 
+def typecast_timestamp(obj_value):
+    if not isinstance(obj_value, (datetime.datetime, datetime.date)):
+        try:
+            obj_value = typecast_timestamp(obj_value)
+        except (ValueError, TypeError):
+            obj_value = None
+    return obj_value
+
+
 def date_lookup(fn):
-    def wrapper(obj_value, query_value):
+    def wrapper(cls, obj_value, query_value):
         query_value = int(query_value)
-        if not isinstance(obj_value, (datetime.datetime, datetime.date)):
-            try:
-                obj_value = typecast_timestamp(obj_value)
-            except (ValueError, TypeError):
-                obj_value = None
+        obj_value = typecast_timestamp(obj_value)
+
         if obj_value is None:
             return False
 
-        return fn(obj_value, query_value)
+        return fn(cls, obj_value, query_value)
 
     return wrapper
 

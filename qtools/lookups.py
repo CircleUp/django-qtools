@@ -11,169 +11,236 @@ These are made to mimic how a SQL query would respond. Some things to note:
    we do further testing.
 """
 import datetime
-import operator
 import re
-from functools import partial
 
+from django.conf import settings
+
+from utils import django_instances_to_keys_for_comparison, date_lookup
 from .exceptions import InvalidLookupValue
-from .utils import django_instances_to_keys_for_comparison, date_lookup, to_str
+from .utils import to_str
 
 
-def exact(a, b):
-    return a is not None and a == b
+class PythonLookups(object):
+    SUPPORTED_LOOKUP_NAMES = [
+        'gt', 'in', 'month', 'isnull', 'endswith', 'week_day', 'year', 'regex', 'gte',
+        'contains', 'lt', 'startswith', 'iendswith', 'icontains', 'iexact', 'exact',
+        'day', 'minute', 'search', 'hour', 'iregex', 'second', 'range', 'istartswith', 'lte'
+    ]
 
+    LOOKUP_FUNC_OVERRIDES = {
+        'in':    'in_func',
+        'range': 'range_func',
+        'search': 'contains'
+    }
 
-def iexact(a, b):
-    if a is None:
-        return False
+    @classmethod
+    def exact(cls, a, b):
+        return a is not None and a == b
 
-    return to_str(a).lower() == to_str(b).lower()
+    @classmethod
+    def iexact(cls, a, b):
+        if a is None:
+            return False
 
+        return to_str(a).lower() == to_str(b).lower()
 
-def contains(haystack, needle):
-    if haystack is None:
-        return False
+    @classmethod
+    def contains(cls, haystack, needle):
+        if haystack is None:
+            return False
 
-    try:
-        iter(haystack)
-    except TypeError:
+        try:
+            iter(haystack)
+        except TypeError:
+            haystack = to_str(haystack)
+
+        if isinstance(haystack, basestring):
+            needle = to_str(needle)
+
+        return needle in haystack
+
+    @classmethod
+    def icontains(cls, haystack, needle):
+        if haystack is None:
+            return False
+
         haystack = to_str(haystack)
-
-    if isinstance(haystack, basestring):
         needle = to_str(needle)
 
-    return needle in haystack
+        return needle.lower() in haystack.lower()
+
+    @classmethod
+    def in_func(cls, needle, haystack):
+        if needle is None:
+            # mirrors how sql treats null values
+            return False
+
+        if isinstance(haystack, basestring):
+            needle = str(needle)
+
+        return needle in haystack
+
+    @classmethod
+    @django_instances_to_keys_for_comparison
+    def gt(cls, a, b):
+        return a > b
+
+    @classmethod
+    @django_instances_to_keys_for_comparison
+    def gte(cls, a, b):
+        return a >= b
+
+    @classmethod
+    @django_instances_to_keys_for_comparison
+    def lt(cls, a, b):
+        return a < b
+
+    @classmethod
+    @django_instances_to_keys_for_comparison
+    def lte(cls, a, b):
+        return a <= b
+
+    @classmethod
+    def range_func(cls, value, rng):
+        if len(rng) != 2:
+            raise InvalidLookupValue('Range lookup must receive a (min, max) tuple.')
+
+        if value is None:
+            return False
+
+        lower, upper = rng
+        if lower is None or upper is None:
+            return False
+
+        return rng[0] <= value <= rng[1]
+
+    @classmethod
+    def endswith(cls, text, ending):
+        if text is None:
+            return False
+
+        text = to_str(text)
+        ending = to_str(ending)
+        return text.endswith(ending)
+
+    @classmethod
+    def iendswith(cls, text, ending):
+        if text is None:
+            return False
+
+        text = to_str(text).lower()
+        ending = to_str(ending).lower()
+        return text.endswith(ending)
+
+    @classmethod
+    def startswith(cls, text, beginning):
+        if text is None:
+            return False
+
+        text = to_str(text)
+        beginning = to_str(beginning)
+        return text.startswith(beginning)
+
+    @classmethod
+    def istartswith(cls, text, beginning):
+        if text is None:
+            return False
+
+        text = to_str(text).lower()
+        beginning = to_str(beginning).lower()
+        return text.startswith(beginning)
+
+    @classmethod
+    @date_lookup
+    def year(cls, dt, yr):
+        yr = int(yr)
+
+        datetime.date(yr, 1, 1)  # throws exception for invalid years
+        return dt.year == yr
+
+    @classmethod
+    @date_lookup
+    def month(cls, dt, month):
+        return dt.month == month
+
+    @classmethod
+    @date_lookup
+    def day(cls, dt, day):
+        return dt.day == day
+
+    @classmethod
+    @date_lookup
+    def week_day(cls, dt, week_day):
+        # https://code.djangoproject.com/ticket/10345
+        # https://code.djangoproject.com/ticket/7672#comment:3
+        return dt.date().isoweekday() + 1 == week_day
+
+    @classmethod
+    @date_lookup
+    def hour(cls, dt, hour):
+        return dt.hour == hour
+
+    @classmethod
+    @date_lookup
+    def minute(cls, dt, minute):
+        return dt.minute == minute
+
+    @classmethod
+    @date_lookup
+    def second(cls, dt, second):
+        return dt.second == second
+
+    @classmethod
+    def isnull(cls, val, is_null):
+        return (val is None) == bool(is_null)
+
+    @classmethod
+    def get_lookup_function(cls, lookup_name):
+        lookup_func_name = cls.LOOKUP_FUNC_OVERRIDES.get(lookup_name, lookup_name)
+        return getattr(cls, lookup_func_name)
+
+    @classmethod
+    def evaluate_lookup(cls, lookup_name, obj_value, query_value):
+        lookup_func = cls.get_lookup_function(lookup_name)
+        return lookup_func(obj_value, query_value)
+
+    @classmethod
+    def regex(cls, text, pattern, flags=0):
+        REGEX_TYPE = type(re.compile(''))
+        if not isinstance(pattern, (REGEX_TYPE, basestring)):
+            raise InvalidLookupValue('Must use a string or compiled pattern with the regex lookup.')
+
+        if text is None:
+            return False
+
+        text = to_str(text)
+
+        return (re.search(pattern, text, flags=flags) is not None)
+
+    @classmethod
+    def iregex(cls, text, pattern):
+        return cls.regex(text, pattern, flags=re.IGNORECASE)
 
 
-def icontains(haystack, needle):
-    if haystack is None:
-        return False
-
-    haystack = to_str(haystack)
-    needle = to_str(needle)
-
-    return needle.lower() in haystack.lower()
+class SqLiteCompatibleLookups(PythonLookups):
+    pass
 
 
-def year(dt, yr):
-    datetime.date(yr, 1, 1)  # throws exception for invalid years
-    return dt.year == yr
+class MySqlCompatibleLookups(PythonLookups):
+    pass
 
 
-def regex(text, pattern, flags=0):
-    REGEX_TYPE = type(re.compile(''))
-    if not isinstance(pattern, (REGEX_TYPE, basestring)):
-        raise InvalidLookupValue('Must use a string or compiled pattern with the regex lookup.')
-
-    if text is None:
-        return False
-
-    text = to_str(text)
-
-    return (re.search(pattern, text, flags=flags) is not None)
-
-
-iregex = partial(regex, flags=re.IGNORECASE)
-
-
-def in_func(needle, haystack):
-    if needle is None:
-        # mirrors how sql treats null values
-        return False
-
-    if isinstance(haystack, basestring):
-        needle = str(needle)
-
-    return needle in haystack
-
-
-def range_func(value, rng):
-    if len(rng) != 2:
-        raise InvalidLookupValue('Range lookup must receive a (min, max) tuple.')
-
-    if value is None:
-        return False
-
-    lower, upper = rng
-    if lower is None or upper is None:
-        return False
-
-    return rng[0] <= value <= rng[1]
-
-
-def endswith(text, ending):
-    if text is None:
-        return False
-
-    text = to_str(text)
-    ending = to_str(ending)
-    return text.endswith(ending)
-
-
-def iendswith(text, ending):
-    if text is None:
-        return False
-
-    text = to_str(text).lower()
-    ending = to_str(ending).lower()
-    return text.endswith(ending)
-
-
-def startswith(text, beginning):
-    if text is None:
-        return False
-
-    text = to_str(text)
-    beginning = to_str(beginning)
-    return text.startswith(beginning)
-
-
-def istartswith(text, beginning):
-    if text is None:
-        return False
-
-    text = to_str(text).lower()
-    beginning = to_str(beginning).lower()
-    return text.startswith(beginning)
-
-
-def isnull(val, is_null):
-    return (val is None) == bool(is_null)
-
-
-LOOKUPS = {
-    'exact':       exact,
-    'iexact':      iexact,
-    'contains':    contains,
-    'icontains':   icontains,
-    'in':          in_func,
-    'gt':          django_instances_to_keys_for_comparison(operator.gt),
-    'gte':         django_instances_to_keys_for_comparison(lambda a, b: a >= b),
-    'lt':          django_instances_to_keys_for_comparison(operator.lt),
-    'lte':         django_instances_to_keys_for_comparison(lambda a, b: a <= b),
-    'startswith':  startswith,
-    'istartswith': istartswith,
-    'endswith':    endswith,
-    'iendswith':   iendswith,
-    'range':       range_func,
-    'year':        year,
-    'month':       date_lookup(lambda dt, month: dt.month == month),
-    'day':         date_lookup(lambda dt, day: dt.day == day),
-    # week day stuff
-    # https://code.djangoproject.com/ticket/10345
-    # https://code.djangoproject.com/ticket/7672#comment:3
-    'week_day':    date_lookup(lambda dt, week_day: dt.date().isoweekday() + 1 == week_day),
-    'hour':        date_lookup(lambda dt, hour: dt.hour == hour),
-    'minute':      date_lookup(lambda dt, minute: dt.minute == minute),
-    'second':      date_lookup(lambda dt, second: dt.second == second),
-    'isnull':      isnull,
-    'search':      contains,
-    'regex':       regex,
-    'iregex':      iregex,
+ENGINE_ADAPTER_MAPPING = {
+    'django.db.backends.mysql':   MySqlCompatibleLookups,
+    'django.db.backends.sqlite3': SqLiteCompatibleLookups,
+    'python':                     PythonLookups,
+    'mysql':                      MySqlCompatibleLookups,
+    'sqlite':                     SqLiteCompatibleLookups
 }
 
-SUPPORTED_LOOKUP_NAMES = LOOKUPS.keys()
 
+def get_lookup_adapter(db_engine=None):
+    if not db_engine:
+        db_engine = settings.DATABASES['default']['ENGINE']
 
-def evaluate_lookup(lookup, obj_value, query_value):
-    return LOOKUPS[lookup](obj_value, query_value)
+    return ENGINE_ADAPTER_MAPPING.get(db_engine, PythonLookups)
