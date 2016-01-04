@@ -42,8 +42,14 @@ def get_model_attribute_values_by_db_name(obj, name):
     field = model._meta.get_field(name)
     if isinstance(field, ForeignObjectRel):
         accessor_name = field.get_accessor_name()
-        manager = getattr(obj, accessor_name)
-        return list(manager.all())
+        try:
+            manager_or_obj = getattr(obj, accessor_name)
+        except model.DoesNotExist:
+            return []
+        if isinstance(manager_or_obj, models.Manager):
+            return list(manager_or_obj.all())
+        else:
+            return [manager_or_obj]
     else:
         return [getattr(obj, name)]
 

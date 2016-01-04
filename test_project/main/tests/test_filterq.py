@@ -3,6 +3,7 @@
 from django.db.models.query_utils import Q
 from django.test.testcases import TestCase
 from django.utils import timezone
+from qtools.filterq import filter_by_q
 
 from main.models import MiscModel, Order, Pizza
 from .base import QInPythonTestCaseMixin
@@ -124,7 +125,19 @@ class TestFilteringOverRelationships(TestCase, QInPythonTestCaseMixin):
         self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q)
 
     def test_one_to_one_related_object(self):
-        raise NotImplementedError()
+        m1 = MiscModel(integer=1)
+        m1.save()
 
-    def test_one_to_one_related_reverse_object(self):
-        raise NotImplementedError()
+        m2 = MiscModel(integer=2, main_info=m1)
+        m2.save()
+
+        q_to_test = [
+            Q(extra_info=m2),
+            Q(extra_info=m1),
+            Q(main_info=m1),
+            Q(main_info=m2)
+        ]
+        all_models = list(MiscModel.objects.all())
+        for q in q_to_test:
+            filter_by_q(all_models, q)
+            self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q)

@@ -72,6 +72,7 @@ class MiscModel(models.Model):
     datetime = models.DateTimeField(null=True)
     foreign = models.ForeignKey('self', null=True, default=None)
     many = models.ManyToManyField('self')
+    main_info = models.OneToOneField('self', related_name='extra_info', null=True)
 
     def __repr__(self):
         return '<MiscModel: %s>' % str(self.pk)
