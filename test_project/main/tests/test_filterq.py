@@ -8,7 +8,7 @@ from main.models import MiscModel, Order, Pizza
 from .base import QInPythonTestCaseMixin
 
 
-class TestLookups(TestCase, QInPythonTestCaseMixin):
+class TestFilteringOverRelationships(TestCase, QInPythonTestCaseMixin):
     def test_example(self):
         order = Order(price=100, name_on_order='Bob')
         order.save()
@@ -83,7 +83,8 @@ class TestLookups(TestCase, QInPythonTestCaseMixin):
     def test_related_object_reverse_relation(self):
         MiscModel().save()
         related = MiscModel(text='goodbye').save()
-        MiscModel(text='hello', foreign=related).save()
+        hello_model = MiscModel(text='hello', foreign=related)
+        hello_model.save()
         MiscModel(text='hola', foreign=related).save()
 
         q = Q(miscmodel__text='hello')
@@ -93,6 +94,9 @@ class TestLookups(TestCase, QInPythonTestCaseMixin):
         self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q)
 
         q = Q(miscmodel__text='hola')
+        self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q)
+
+        q = Q(miscmodel=hello_model)
         self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q)
 
     def test_several_degree_related_object(self):
@@ -112,9 +116,15 @@ class TestLookups(TestCase, QInPythonTestCaseMixin):
         m2.save()
         m3.save()
 
-        q = Q(miscmodel__miscmodel__miscmodel__miscmodel__foreign__foreign__integer=2)
+        q = Q(miscmodel__miscmodel__miscmodel__foreign__foreign__integer=2)
         self.assertEqual(1, MiscModel.objects.filter(q).count())
         self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q)
 
-        q = Q(miscmodel__miscmodel__miscmodel__miscmodel__foreign__integer=9)
+        q = Q(miscmodel__miscmodel__miscmodel__foreign__integer=9)
         self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q)
+
+    def test_one_to_one_related_object(self):
+        raise NotImplementedError()
+
+    def test_one_to_one_related_reverse_object(self):
+        raise NotImplementedError()

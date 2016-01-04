@@ -2,11 +2,12 @@ import datetime
 
 from django.db import connection, models
 from django.db.backends.utils import typecast_timestamp
+from django.db.models.fields.related import ForeignObjectRel
 
 from .exceptions import InvalidFieldLookupCombo
 
 
-def _django_instances_to_keys(*objs):
+def django_instances_to_keys(*objs):
     """Convert django instances to keys"""
     return_objs = []
     for obj in objs:
@@ -27,7 +28,10 @@ VALID_FIELD_LOOKUPS = {
 
 
 def assert_is_valid_lookup_for_field(lookup, field):
-    simple_type = simplify_data_types(field.db_type(connection))
+    if isinstance(field, ForeignObjectRel):
+        simple_type = 'number'
+    else:
+        simple_type = simplify_data_types(field.db_type(connection))
 
     if simple_type in VALID_FIELD_LOOKUPS:
 
@@ -37,7 +41,7 @@ def assert_is_valid_lookup_for_field(lookup, field):
 
 def django_instances_to_keys_for_comparison(fn):
     def wrap_fn(a, b):
-        a, b = _django_instances_to_keys(a, b)
+        a, b = django_instances_to_keys(a, b)
         if a is None or b is None:
             return False
         return fn(a, b)

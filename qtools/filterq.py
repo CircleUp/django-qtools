@@ -1,10 +1,11 @@
 from django.db import models
 from django.db.models.fields.related import ForeignObjectRel
+from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 
 from .exceptions import NoOpFilterException
 from .lookups import evaluate_lookup, SUPPORTED_LOOKUP_NAMES
-from .utils import assert_is_valid_lookup_for_field
+from .utils import assert_is_valid_lookup_for_field,django_instances_to_keys
 
 
 def filter_by_q(objs, q):
@@ -54,6 +55,10 @@ def obj_matches_filter_statement(obj, filter_statement, filter_value):
     if obj is None:
         return evaluate_lookup(lookup, obj, filter_value)
 
+    # handle QuerySets as arguments
+    if isinstance(filter_value, QuerySet):
+        filter_value = list(filter_value)
+
     if not isinstance(obj, models.Model):
         raise Exception("Only django objects supported for now. %s" % str(obj))
 
@@ -62,14 +67,20 @@ def obj_matches_filter_statement(obj, filter_statement, filter_value):
     field = opts.get_field(next_token)
 
     if len(remaining_statement_parts) == 1:
-        obj_value = getattr(obj, next_token)
         assert_is_valid_lookup_for_field(lookup, field)
+
         try:
             filter_value, lookup = prep_filter_value_and_lookup(model, filter_statement, filter_value)
         except NoOpFilterException:
             return True
 
-        return evaluate_lookup(lookup, obj_value, filter_value)
+        obj_values = get_model_attribute_values_by_db_name(obj, next_token)
+        obj_values = django_instances_to_keys(*obj_values)
+        for obj_value in obj_values:
+            r = evaluate_lookup(lookup, obj_value, filter_value)
+            if r:
+                return True
+        return False
 
     obj_values = get_model_attribute_values_by_db_name(obj, next_token)
 
