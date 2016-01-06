@@ -3,17 +3,18 @@ from django.db.models.fields.related import ForeignObjectRel
 from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 
+from utils import get_field_simple_datatype
 from .exceptions import NoOpFilterException
 from .lookups import get_lookup_adapter
 from .utils import assert_is_valid_lookup_for_field, django_instances_to_keys
 
 
-def filter_by_q(objs, q):
+def filter_by_q(objs, q, lookup_adapter=None):
     """Filters a collection of objects by a Q object"""
     return [obj for obj in objs if obj_matches_q(obj, q)]
 
 
-def obj_matches_q(obj, q):
+def obj_matches_q(obj, q, lookup_adapter=None):
     """Returns True if obj matches the Q object"""
 
     does_it_match = q.connector == q.AND
@@ -22,7 +23,7 @@ def obj_matches_q(obj, q):
             r = obj_matches_q(obj, child)
         else:
             filter_statement, value = child
-            r = obj_matches_filter_statement(obj, filter_statement, value)
+            r = obj_matches_filter_statement(obj, filter_statement, value, lookup_adapter)
 
         if q.connector == q.AND and not r:
             does_it_match = False
@@ -37,7 +38,7 @@ def obj_matches_q(obj, q):
     return does_it_match
 
 
-def get_model_attribute_values_by_db_name(obj, name):
+def get_model_attribute_values_by_db_name(obj, name, lookup_adapter=None):
     model = type(obj)
     field = model._meta.get_field(name)
     if isinstance(field, ForeignObjectRel):
@@ -54,11 +55,11 @@ def get_model_attribute_values_by_db_name(obj, name):
         return [getattr(obj, name)]
 
 
-def obj_matches_filter_statement(obj, filter_statement, filter_value):
+def obj_matches_filter_statement(obj, filter_statement, filter_value, lookup_adapter=None):
     """Returns True if the obj matches the filter statement"""
     next_token, remaining_statement_parts = process_filter_statement(filter_statement)
     lookup = remaining_statement_parts[-1]
-    lookup_adapter = get_lookup_adapter()
+    lookup_adapter = get_lookup_adapter(lookup_adapter)
     if obj is None:
         return lookup_adapter.evaluate_lookup(lookup, obj, filter_value)
 
@@ -74,7 +75,8 @@ def obj_matches_filter_statement(obj, filter_statement, filter_value):
     field = opts.get_field(next_token)
 
     if len(remaining_statement_parts) == 1:
-        assert_is_valid_lookup_for_field(lookup, field)
+        simple_type = get_field_simple_datatype(field)
+        assert_is_valid_lookup_for_field(lookup, simple_type)
 
         try:
             filter_value, lookup = prep_filter_value_and_lookup(model, filter_statement, filter_value)
@@ -84,7 +86,7 @@ def obj_matches_filter_statement(obj, filter_statement, filter_value):
         obj_values = get_model_attribute_values_by_db_name(obj, next_token)
         obj_values = django_instances_to_keys(*obj_values)
         for obj_value in obj_values:
-            r = lookup_adapter.evaluate_lookup(lookup, obj_value, filter_value)
+            r = lookup_adapter.evaluate_lookup(lookup, obj_value, filter_value, simple_type)
             if r:
                 return True
         return False
@@ -106,13 +108,17 @@ def prep_filter_value_and_lookup(model, filter_statement, filter_value):
     In some cases the lookup may be changed to a more appropriate lookup.
     """
     qs = model.objects.filter(**{filter_statement: filter_value})
+
     try:
-        filter_value = qs.query.where.children[0].rhs
         lookup = qs.query.where.children[0].lookup_name
+        if lookup == 'in' and isinstance(filter_value, basestring):
+            pass
+        else:
+            filter_value = qs.query.where.children[0].rhs
+
     except IndexError:
         # the filter was a no-op
         raise NoOpFilterException()
-
     return filter_value, lookup
 
 
