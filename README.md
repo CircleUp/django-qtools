@@ -114,47 +114,46 @@ from qtools import nested_q
 Q(order__price=500) == nested_q('order', Q(price=500))
 ```
 
-## To Do
+## Changelog
 
-**Version 0.9**
-- [x] Study and evaluate Lookupy and django-test-db
-- [x] Enumerate test cases
-- [x] Design API
-- [x] Write test cases
-  - [x] Lookups
-  - [x] Related object traversal and filtering
-  - [x] QuerySets based on Q objects
-- [x] Write code
-  - [x] lookups
-  - [x] related object traversal and filtering code
-  - [x] querysets based on Q objects (q_method decorator)
-- [ ] Test cases pass
-  - [x] Lookups
-  - [x] Related object traversal and filtering
-  - [x] querysets based on Q objects (q_method decorator)
-  - [ ] mysql bulk tested
-- [ ] Write documentation, instructions on how to test.
-  - [ ] Good/Bad Example
-  - [ ] Best Practices section
-  - [ ] How to Contribute section
-  - [ ] CircleUp recruiting blurb
-  - [ ] Mention of libraries worked on
+**Version 0.9 (current)**
+- Features
+  - All Django 1.8 lookups
+  - Related object traversal and filtering
+  - Querysets based on Q objects (q_method decorator)
+  - Switch into different compatibility modes depending on db (mysql, sqlite, postgres)
+- Test Cases
+  - Lookups
+  - Related object traversal and filtering
+  - Querysets based on Q objects (q_method decorator)
+  - sqlite bulk tested
+  - mysql bulk tested
+- Documentation
+  - Example
+  - Best Practices section
+  - Comparison to existing projects
 
 **Version 1.0**
-- [ ] More tests
-- [ ] Testing across environments (django and python versions)
-- [ ] Automatic testing
-- [ ] Generated docs - hosted somewhere
-- [ ] Open source package and make it accessible via pip
+- Features
+  - N-Query Warning
+- Testing
+  - More tests
+  - Testing across environments (django and python versions)
+  - Automatic pull request testing
+- Documentation
+  - License
+  - Working @ CircleUp
+- Open source package and make it accessible via pip
  
 **Future**
-- [ ] Complete in-memory QuerySet replacement
-- [ ] Switch into different compatibility modes depending on db (mysql, sqlite, postgres)
-- [ ] Replace db backend for faster tests
+- Complete in-memory QuerySet replacement
+- Replace db backend for faster tests
 
 ### Similar Libraries
 
-Project | Handles django objects | python/filter exclude | related objects | Q objects
+**In-Memory Filtering**
+
+Project | Handles django objects | python/filter exclude | related objects | Q objects 
 --- | --- | --- | --- | ---
 [Lookupy](https://github.com/naiquevin/lookupy) | N | Y | Y | Y | custom
 [django-test-db](https://github.com/mjtamlyn/django-test-db/blob/master/test_db.py) | Y | Y | partial | Y | Y
@@ -162,6 +161,13 @@ Project | Handles django objects | python/filter exclude | related objects | Q o
 [dj.chain](https://github.com/ambv/dj.chain/blob/master/src/dj/chain/__init__.py) | Y | N | N | N | N
 [djblets](https://github.com/djblets/djblets/blob/master/djblets/db/query.py) | Y | Y | N | N | N
 
+**Querysets with Q Objects**
+
+Project | Q object queryset methods | methods with args | Q nesting
+--- | --- | --- | ---
+[django-conceptq](https://github.com/yourcelf/django-conceptq) | Y | N | Y
+[esp-website: query_utils](https://github.com/learning-unlimited/ESP-Website/blob/main/esp/esp/utils/query_utils.py) | N | N | Y
+[django recycle](https://github.com/flc/django-recycle/blob/master/django_recycle/utils/prefixed_q.py) | N | N | Y
 
 ### Alternative APIs
 These options were considered.
