@@ -180,16 +180,17 @@ class TestLookupValues(TestCase, QInPythonTestCaseMixin):
         assert not obj_matches_q(m, Q(text__exact='A'), lookup_adapter='python')
 
     def test_text_gt(self):
-        self.run_through_lookup_test_cases(
-            field_name='text',
-            lookup_name='gt',
-            test_values_and_expectations=[
-                (None, 'e', False, False),
-                ('True', 'a', False, True),
-                ('true', 'a', True, True),
-                ('True', 'True', False, False)
-            ]
-        )
+        with self.assertRaisesRegexp(InvalidLookupUsage, 'collation'):
+            self.run_through_lookup_test_cases(
+                field_name='text',
+                lookup_name='gt',
+                test_values_and_expectations=[
+                    (None, 'e', False, False),
+                    ('True', 'a', False, True),
+                    ('true', 'a', True, True),
+                    ('True', 'True', False, False)
+                ]
+            )
 
     def test_text_in(self):
         self.run_through_lookup_test_cases(

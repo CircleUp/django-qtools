@@ -46,7 +46,7 @@ class TestFilteringOverRelationships(TestCase, QInPythonTestCaseMixin):
         m2.save()
         m3.save()
 
-        q = Q(text='hola') | (Q(integer__gt=49) & Q(text='goodbye') & Q(integer__lt=500)) | Q(text__lt='zzzzzzzzzzzzz', miscmodel__miscmodel__miscmodel__miscmodel__foreign__foreign__integer=5)
+        q = Q(text='hola') | (Q(integer__gt=49) & Q(text='goodbye') & Q(integer__lt=500)) | Q(miscmodel__miscmodel__miscmodel__miscmodel__foreign__foreign__integer=5)
         self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q)
 
     def test_nested_q_object_handling(self):
@@ -56,7 +56,7 @@ class TestFilteringOverRelationships(TestCase, QInPythonTestCaseMixin):
         m2 = MiscModel(text='goodbye', integer=50)
         m2.save()
 
-        q = Q(text='hola') | (Q(integer__gt=49) & Q(text='goodbye') & Q(integer__lt=500)) | Q(text__gt='zzzzzzzzzzzzz')
+        q = Q(text='hola') | (Q(integer__gt=49) & Q(text='goodbye') & Q(integer__lt=500)) | Q(text='zzzzzzzzzzzzz')
         self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q)
 
     def test_q_negation(self):

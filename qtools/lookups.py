@@ -16,6 +16,7 @@ import re
 from decimal import Decimal
 
 from django.conf import settings
+from qtools.exceptions import InvalidLookupUsage
 
 from qtools.utils import remove_trailing_spaces_if_string
 from utils import django_instances_to_keys_for_comparison, date_lookup, limit_float_to_digits
@@ -281,14 +282,12 @@ class MySqlCompatibleLookups(PythonLookups):
                     obj_value = to_str(obj_value).lower()
 
         elif lookup_name in ['gt', 'gte', 'lt', 'lte']:
+            if simple_field_type == 'string':
+                raise InvalidLookupUsage('Comparing strings in python can have different results than you would get in MySql due to python not being aware of the collation.')
+
             if isinstance(obj_value, basestring):
-                # when doing string comparisons mysql is not case sensitive (usually)
+                # when doing string comparisons mysql is not case sensitive in the most commonly used collations
                 obj_value = obj_value.lower()
-                if simple_field_type == 'string':
-                    query_value = to_str(query_value).lower()
-                logger.warning('Comparing strings in python can have different results than you would get in MySql due to python not being aware of the collation.')
-                # if isinstance(query_value, list) and len(query_value) == 0:
-                #     query_value = None
 
         elif lookup_name == 'in':
             if isinstance(obj_value, basestring):
