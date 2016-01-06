@@ -53,7 +53,7 @@ class TestLookupValues(TestCase, QInPythonTestCaseMixin):
             field_name='date',
             lookup_name='year',
             test_values_and_expectations=[
-                (None, False, False, Exception),
+                (None, False, Exception, Exception),
             ]
         )
 
@@ -92,7 +92,7 @@ class TestLookupValues(TestCase, QInPythonTestCaseMixin):
             field_name='decimal',
             lookup_name='in',
             test_values_and_expectations=[
-                (True, '1', False, True),
+                (True, '1', True, True),
             ]
         )
 
@@ -114,7 +114,7 @@ class TestLookupValues(TestCase, QInPythonTestCaseMixin):
             field_name='decimal',
             lookup_name='in',
             test_values_and_expectations=[
-                (True, '1', False, True),
+                (True, '1', True, True),
             ]
         )
 
@@ -132,7 +132,7 @@ class TestLookupValues(TestCase, QInPythonTestCaseMixin):
             field_name='decimal',
             lookup_name='in',
             test_values_and_expectations=[
-                (True, '1', False, True),
+                (True, '1', True, True),
             ]
         )
 
@@ -199,13 +199,15 @@ class TestLookupValues(TestCase, QInPythonTestCaseMixin):
             test_values_and_expectations=[
                 ('ab', ['ab', 'ac'], True, True),
                 ('ab   ', ['ab ', 'ac'], False, True),
-                ('', ' ', True, True),
+                ('ab', 'ab', False, False),
+                ('', ' ', False, True),
                 (' ', [None, ''], False, True),
                 ('A', 'False', False, True),
+                ('a', 'A', False, True),
+                ('A', 'A', True, True),
                 (2.0, 2.0, Exception, Exception),
                 (2.0, [], False, False),
-                (0.0, '0.0', True, False),
-                ('ab', 'ab', True, False),
+                (0.0, '0.0', False, False),
                 ('True', (True,), True, True),
             ]
         )
@@ -236,14 +238,14 @@ class TestLookupValues(TestCase, QInPythonTestCaseMixin):
 
 
 class TestLookupsBulk(TransactionTestCase, QInPythonTestCaseMixin):
-    @unittest.skip("Takes too long to run")
+    # @unittest.skip("Takes too long to run")
     def test_all_lookups_basic(self):
         """
 
         This will return failures. Specifically:
           - python doesn't collate the same way as mysql so string comparisons will come out different  ('True' > '[]' for example)
-          - fulltext search will throw errors on sqlite because it isn't supported
-          - fulltext search will throw errors on mysql if there isn't a fulltext index
+          - fulltext search will throw errors on sqlite because it isn't supported (hardcoded to skip these tests)
+          - fulltext search will throw errors on mysql if there isn't a fulltext index (hardcoded to skip these tests)
         """
         lookup_adapter = get_lookup_adapter()
         field_names = ['nullable_boolean', 'boolean', 'integer', 'float', 'decimal', 'text', 'date', 'datetime', 'foreign', 'many']

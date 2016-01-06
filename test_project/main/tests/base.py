@@ -159,6 +159,8 @@ class QInPythonTestCaseMixin(object):
                         except InvalidFieldLookupCombo:
                             skip_field_name = field_name
                             invalid_usage_exception_count += 1
+                        except InvalidLookupUsage:
+                            invalid_usage_exception_count += 1
                         except DoesNotMatchDbExecution, e:
                             does_not_match_db_exceptions.append(e)
                             print ''

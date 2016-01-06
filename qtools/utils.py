@@ -43,11 +43,11 @@ def assert_is_valid_lookup_for_field(lookup, simple_type):
 
 
 def django_instances_to_keys_for_comparison(fn):
-    def wrap_fn(cls, a, b):
+    def wrap_fn(cls, a, b, simple_field_type=None):
         a, b = django_instances_to_keys(a, b)
         if a is None or b is None:
             return False
-        return fn(cls, a, b)
+        return fn(cls, a, b, simple_field_type)
 
     return wrap_fn
 
@@ -62,14 +62,14 @@ def typecast_timestamp(obj_value):
 
 
 def date_lookup(fn):
-    def wrapper(cls, obj_value, query_value):
+    def wrapper(cls, obj_value, query_value, simple_field_type):
         query_value = int(query_value)
         obj_value = typecast_timestamp(obj_value)
 
         if obj_value is None:
             return False
 
-        result = fn(cls, obj_value, query_value)
+        result = fn(cls, obj_value, query_value, simple_field_type)
 
         return result
 
