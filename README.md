@@ -44,12 +44,6 @@ class Pizza(models.Model):
     def is_delivered(self):
         return obj_matches_q(self, PizzaQuerySet.is_delivered.q())
 
-class Pizza(models.Model, MatchesQMixin):
-    delivered = models.DateTimeField()
-
-    def is_delivered(self):
-        return self.matches_q(Q(delivered__isnull=False))
-
  order = Order(price=100, name_on_order='Bob')
  pizza = Pizza(diameter=12, order=order, created=timezone.now())
  
