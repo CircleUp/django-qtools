@@ -39,6 +39,13 @@ def obj_matches_q(obj, q, lookup_adapter=None):
 
 
 def get_model_attribute_values_by_db_name(obj, name, lookup_adapter=None):
+    """
+    Get the model instance attribute value
+
+    Handles traversing relationships as well as simple attributes.
+
+    Always returns a collection of values.
+    """
     model = type(obj)
     field = model._meta.get_field(name)
     if isinstance(field, ForeignObjectRel):
@@ -123,6 +130,7 @@ def prep_filter_value_and_lookup(model, filter_statement, filter_value):
 
 
 def process_filter_statement(filter_statement):
+    """splits a filter statement and identifies the lookup"""
     statement_parts = filter_statement.split('__')
 
     lookup = statement_parts[-1]
