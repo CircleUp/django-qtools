@@ -9,7 +9,8 @@ Standard Django forces business logic to be repeated as it's used in different c
  - Prevent repeated definitions from getting out of sync
  - More maintainable code. Just change the one definition.
  - Reduce db queries by filtering in-memory.
- - Use in testing for faster tests
+ - Supports all Django 1.8 lookups (exact, in, contains, etc.)
+ - Switch into different compatibility modes depending on db (mysql, sqlite, etc)
 
 ## Example
 ```python
@@ -141,7 +142,7 @@ Q(order__price=500) == nested_q('order', Q(price=500))
 
 **Version 0.9 (current)**
 - Features
-  - All Django 1.8 lookups
+  - Supports all Django 1.8 lookups
   - Related object traversal and filtering
   - Querysets based on Q objects (q_method decorator)
   - Switch into different compatibility modes depending on db (mysql, sqlite, postgres)
