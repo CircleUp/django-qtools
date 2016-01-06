@@ -114,7 +114,30 @@ from qtools import nested_q
 Q(order__price=500) == nested_q('order', Q(price=500))
 ```
 
+## Django Data Query Best Practices
+
+- Don't use custom managers, use custom querysets. They're chainable.
+- There should generally be one QuerySet per model that has lots of composable methods.
+- Display logic (like ordering) does not belong in the QuerySet.
+- If it all possible, queryset methods should be written as `@q_method`s. This will allow the same filtering logic to be used in queries from other models as well as in-memory using `obj_matches_q`.
+
 ## Changelog
+
+**Future**
+- Complete in-memory QuerySet replacement
+- Replace db backend for faster tests
+
+**Version 1.0**
+- Features
+  - N-Query Warning
+- Testing
+  - More tests
+  - Testing across environments (django and python versions)
+  - Automatic pull request testing
+- Documentation
+  - License
+  - Working @ CircleUp
+- Open source package and make it accessible via pip
 
 **Version 0.9 (current)**
 - Features
@@ -133,23 +156,7 @@ Q(order__price=500) == nested_q('order', Q(price=500))
   - Best Practices section
   - Comparison to existing projects
 
-**Version 1.0**
-- Features
-  - N-Query Warning
-- Testing
-  - More tests
-  - Testing across environments (django and python versions)
-  - Automatic pull request testing
-- Documentation
-  - License
-  - Working @ CircleUp
-- Open source package and make it accessible via pip
- 
-**Future**
-- Complete in-memory QuerySet replacement
-- Replace db backend for faster tests
-
-### Similar Libraries
+### Feature Comparison
 
 **In-Memory Filtering**
 
