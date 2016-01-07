@@ -131,6 +131,7 @@ Q(order__price=500) == nested_q('order', Q(price=500))
 **Version 1.0**
 - Features
   - N-Query Warning
+  - q_method should behave like a class method
 - Testing
   - More tests
   - Testing across environments (django and python versions)
