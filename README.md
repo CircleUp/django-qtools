@@ -44,6 +44,9 @@ class Pizza(models.Model):
     @property
     def is_delivered(self):
         return obj_matches_q(self, PizzaQuerySet.is_delivered.q())
+    
+    def delivered_in_last_x_days(self, days):
+        return obj_matches_q(self, PizzaQuerySet.delivered_in_last_x_days.q(days)
 
  order = Order(price=100, name_on_order='Bob')
  pizza = Pizza(diameter=12, order=order, created=timezone.now())
