@@ -47,23 +47,29 @@ class Pizza(models.Model):
     
     def delivered_in_last_x_days(self, days):
         return obj_matches_q(self, PizzaQuerySet.delivered_in_last_x_days.q(days)
+```
 
- order = Order(price=100, name_on_order='Bob')
- pizza = Pizza(diameter=12, order=order, created=timezone.now())
- 
- order.save()
- pizza.save()
+Usage
+```python
+order = Order(price=100, name_on_order='Bob')
+pizza = Pizza(diameter=12, order=order, created=timezone.now())
 
- self.assertEqual(0, Pizza.objects.is_delivered().count())
- self.assertEqual(0, Order.objects.is_delivered().count())
- self.assertFalse(pizza.is_delivered)
+order.save()
+pizza.save()
 
- order.delivered_time = timezone.now()
- order.save()
+assert Pizza.objects.is_delivered().count() == 0
+assert Order.objects.is_delivered().count() == 0 
+assert Pizza.objects.delivered_in_last_x_days(5) == 0
+assert not pizza.is_delivered
 
- self.assertEqual(1, Order.objects.is_delivered().count())
- self.assertEqual(1, Pizza.objects.is_delivered().count())
- self.assertTrue(pizza.is_delivered)
+
+order.delivered_time = timezone.now()
+order.save()
+
+assert Pizza.objects.is_delivered().count() == 1
+assert Order.objects.is_delivered().count() == 1 
+assert Pizza.objects.delivered_in_last_x_days(5) == 1
+assert pizza.is_delivered
 
 ```
 ## API
