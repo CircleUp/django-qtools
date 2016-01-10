@@ -7,13 +7,13 @@ This library allows a piece of filtering logic to be written once and then used 
 """
 
 setup(
-    name='django-qtools',
-    version='0.9',
-    author='Bryce Drennan, CircleUp',
-    author_email='bdrennan@circleup.com',
-    url='https://github.com/CircleUp/django-qtools',
-    packages=['qtools'],
-    license='',
-    description='Write DRY, composable filtering logic for data queries and instance methods.',
-    long_description=long_description,
+        name='django-qtools',
+        version='0.9',
+        author='Bryce Drennan, CircleUp',
+        author_email='bdrennan@circleup.com',
+        url='https://github.com/CircleUp/django-qtools',
+        packages=['qtools'],
+        license='',
+        description='Write DRY, composable filtering logic for data queries and instance methods.',
+        long_description=long_description,
 )

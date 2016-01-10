@@ -11,6 +11,7 @@ Standard Django forces business logic to be repeated as it's used in different c
  - Reduce db queries by filtering in-memory.
  - Supports all Django 1.8 lookups (exact, in, contains, etc.)
  - Switch into different compatibility modes depending on db (mysql, sqlite, etc)
+ - Tested in Python 2.7, 3.5 and Django 1.7 and 1.8
 
 ## Example
 ```python

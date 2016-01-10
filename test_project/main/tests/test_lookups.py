@@ -1,5 +1,6 @@
 # coding=utf-8
 import unittest
+from datetime import timedelta
 
 from django.db.models.query_utils import Q
 from django.test.testcases import TransactionTestCase, TestCase
@@ -43,8 +44,10 @@ class TestLookups(TestCase, QInPythonTestCaseMixin):
 
     def test_week_days(self):
         now = timezone.now()
-        for day in range(0, 8):
-            self.assert_lookup_matches_db_execution('week_day', 'datetime', now, day)
+        for delta in range(0, 8):
+            dt = now - timedelta(days=delta)
+            for day in range(0, 8):
+                self.assert_lookup_matches_db_execution('week_day', 'datetime', dt, day)
 
 
 class TestLookupValues(TestCase, QInPythonTestCaseMixin):
@@ -238,7 +241,7 @@ class TestLookupValues(TestCase, QInPythonTestCaseMixin):
 
 
 class TestLookupsBulk(TransactionTestCase, QInPythonTestCaseMixin):
-    # @unittest.skip("Takes too long to run")
+    @unittest.skip("Takes too long to run")
     def test_all_lookups_basic(self):
         """
 

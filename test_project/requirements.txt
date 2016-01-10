@@ -1,2 +1,4 @@
-django
+django==1.8.8
 pytz
+tox
+virtualenv

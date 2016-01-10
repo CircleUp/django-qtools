@@ -1,4 +1,5 @@
 # coding=utf-8
+from __future__ import print_function
 import datetime
 from decimal import InvalidOperation
 
@@ -6,7 +7,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction, IntegrityError
 from django.db.models import Q
 from django.db.utils import DataError
-from django.utils import timezone
+from django.utils import six, timezone
 from qtools import filter_by_q
 from qtools.exceptions import InvalidLookupUsage, InvalidLookupValue, InvalidFieldLookupCombo
 from qtools.filterq import obj_matches_filter_statement
@@ -61,7 +62,7 @@ class QInPythonTestCaseMixin(object):
         try:
             result = obj_matches_filter_statement(m, filter_statement, filter_value, lookup_adapter=lookup_adapter)
 
-        except Exception, e:
+        except Exception as e:
             if type(expected) != type or not isinstance(e, expected):
                 raise
                 # raise Exception('Unexpected result for (%s)%s==%s Expected: %s Actual: %s' % (repr(obj_value), filter_statement, repr(filter_value), repr(expected), repr(e)))
@@ -84,7 +85,7 @@ class QInPythonTestCaseMixin(object):
                 m.save()
                 saved_m = MiscModel.objects.get(id=m.id)
                 saved_value = getattr(saved_m, field_name)
-        except (IntegrityError, ValueError, ValidationError, TypeError, ValueError, InvalidOperation, DataError), e:
+        except (IntegrityError, ValueError, ValidationError, TypeError, ValueError, InvalidOperation, DataError) as e:
             # we aren't testing which field values are valid to save in the db, so we'll skip these cases
             transaction.rollback()
             raise InvalidDbState(str(e))
@@ -95,7 +96,7 @@ class QInPythonTestCaseMixin(object):
 
         try:
             self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q, raise_original_exceptions=fail_fast, raise_invalid_usage=raise_invalid_usage)
-        except DoesNotMatchDbExecution, e:
+        except DoesNotMatchDbExecution as e:
             raise LookupDoesNotMatchDbExecution(
                 lookup_name=lookup_name,
                 field_name=field_name,
@@ -115,12 +116,12 @@ class QInPythonTestCaseMixin(object):
         status_msg = '\rTesting %s__%s.  Total Progress: %i/%i  Invalid DB State: %i  Invalid Usage: %i  DBMatchProblem: %i  Passed: %i  Off By: %i               '
         test_count = 0
         num_tests = len(test_values) * len(test_values) * len(lookup_names) * len(field_names)
-        print "Running %i tests total" % num_tests
-        print"Running %i tests for per lookup" % (len(test_values) * len(test_values) * len(field_names))
+        print("Running %i tests total" % num_tests)
+        print("Running %i tests for per lookup" % (len(test_values) * len(test_values) * len(field_names)))
         for lookup_name in lookup_names:
             for field_name in field_names:
                 skip_field_name = MATCHES_NOTHING
-                print ''
+                print('')
                 for obj_value in test_values:
                     skip_obj_value = MATCHES_NOTHING
                     for filter_value in test_values:
@@ -144,11 +145,11 @@ class QInPythonTestCaseMixin(object):
                             continue
                         checksum = invalid_db_state_count + invalid_usage_exception_count + len(does_not_match_db_exceptions) + tested_and_passed_count
                         discrepency = test_count - checksum
-                        print status_msg % (
+                        print(status_msg % (
                             field_name, lookup_name, test_count, num_tests, invalid_db_state_count,
                             invalid_usage_exception_count, len(does_not_match_db_exceptions), tested_and_passed_count,
                             discrepency
-                        ),
+                        ), end='')
                         try:
                             self.assert_lookup_matches_db_execution(lookup_name, field_name, obj_value, filter_value, fail_fast=fail_fast)
                         except InvalidDbState:
@@ -161,16 +162,16 @@ class QInPythonTestCaseMixin(object):
                             invalid_usage_exception_count += 1
                         except InvalidLookupUsage:
                             invalid_usage_exception_count += 1
-                        except DoesNotMatchDbExecution, e:
+                        except DoesNotMatchDbExecution as e:
                             does_not_match_db_exceptions.append(e)
-                            print ''
-                            print e
+                            print('')
+                            print(e)
                             if fail_fast:
                                 raise
                         else:
                             tested_and_passed_count += 1
-        print ''
-        print "Passed %s lookup tests and failed %s tests." % (tested_and_passed_count, len(does_not_match_db_exceptions))
+        print('')
+        print("Passed %s lookup tests and failed %s tests." % (tested_and_passed_count, len(does_not_match_db_exceptions)))
         if does_not_match_db_exceptions:
             raise Exception(',\n'.join([str(e) for e in does_not_match_db_exceptions]))
 
@@ -289,22 +290,27 @@ class QInPythonTestCaseMixin(object):
         try:
             qs = model.objects.filter(q)
             db_result = list(qs)
-        except Exception, db_result:
-            pass
+        except Exception as e:
+            db_result = e
 
         try:
             mem_result = filter_by_q(all_objs, q, lookup_adapter=lookup_adapter)
-        except InvalidLookupUsage, mem_result:
+        except InvalidLookupUsage as e:
+            mem_result = e
             if raise_invalid_usage:
                 raise
-        except Exception, mem_result:
-            pass
+        except Exception as e:
+            mem_result = e
 
         if isinstance(db_result, Exception) and isinstance(mem_result, Exception):
             return
 
-        if raise_original_exceptions and (isinstance(db_result, Exception) or isinstance(mem_result, Exception)):
-            raise
+        if raise_original_exceptions:
+            if isinstance(db_result, Exception):
+                raise db_result
+
+            if isinstance(mem_result, Exception):
+                raise mem_result
 
         if set(db_result) != set(mem_result):
             try:
@@ -324,7 +330,7 @@ class QInPythonTestCaseMixin(object):
 
 
 def create_test_value(value):
-    if isinstance(value, basestring) and value.startswith('TestValue: '):
+    if isinstance(value, six.string_types) and value.startswith('TestValue: '):
         value_type = value.replace('TestValue: ', '')
         if value_type == 'object':
             return object()

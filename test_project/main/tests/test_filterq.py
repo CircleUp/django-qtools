@@ -117,6 +117,14 @@ class TestFilteringOverRelationships(TestCase, QInPythonTestCaseMixin):
         m2.save()
         m3.save()
 
+        q = Q(miscmodel__integer=2)
+        self.assertEqual(1, MiscModel.objects.filter(q).count())
+        self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q)
+
+        q = Q(foreign__integer=2)
+        self.assertEqual(1, MiscModel.objects.filter(q).count())
+        self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q)
+
         q = Q(miscmodel__miscmodel__miscmodel__foreign__foreign__integer=2)
         self.assertEqual(1, MiscModel.objects.filter(q).count())
         self.assert_q_executes_the_same_in_python_and_sql(MiscModel, q)

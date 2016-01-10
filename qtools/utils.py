@@ -3,6 +3,17 @@ import datetime
 from django.db import connection, models
 from django.db.backends.utils import typecast_timestamp as django_typecast_timestamp
 from django.db.models.fields.related import ForeignObjectRel
+from django.utils import six
+
+RELATED_FIELD_CLASSES = [ForeignObjectRel]
+try:
+    # django 1.6
+    from django.db.models.related import RelatedObject
+    RELATED_FIELD_CLASSES.append(RelatedObject)
+except ImportError:
+    pass
+
+RELATED_FIELD_CLASSES = tuple(RELATED_FIELD_CLASSES)
 
 from .exceptions import InvalidFieldLookupCombo
 
@@ -77,13 +88,13 @@ def date_lookup(fn):
 
 
 def to_str(text):
-    if not isinstance(text, basestring):
+    if not isinstance(text, six.string_types):
         text = str(text)
     return text
 
 
 def remove_trailing_spaces_if_string(val):
-    if isinstance(val, basestring):
+    if isinstance(val, six.string_types):
         return val.rstrip(' ')
     return val
 
@@ -102,7 +113,7 @@ _DB_TYPES_SIMPLE_MAP = {
 
 
 def get_field_simple_datatype(field):
-    if isinstance(field, ForeignObjectRel):
+    if isinstance(field, RELATED_FIELD_CLASSES):
         return 'number'
 
     db_field_type = field.db_type(connection)

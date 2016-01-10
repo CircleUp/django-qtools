@@ -1,12 +1,13 @@
+# from django.core.exceptions import FieldDoesNotExist
 from django.db import models
-from django.db.models.fields.related import ForeignObjectRel
+from django.db.models.fields import FieldDoesNotExist
 from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
+from django.utils import six
 
-from utils import get_field_simple_datatype
 from .exceptions import NoOpFilterException
 from .lookups import get_lookup_adapter
-from .utils import assert_is_valid_lookup_for_field, django_instances_to_keys
+from .utils import assert_is_valid_lookup_for_field, django_instances_to_keys, get_field_simple_datatype, RELATED_FIELD_CLASSES
 
 
 def filter_by_q(objs, q, lookup_adapter=None):
@@ -47,19 +48,33 @@ def get_model_attribute_values_by_db_name(obj, name, lookup_adapter=None):
     Always returns a collection of values.
     """
     model = type(obj)
-    field = model._meta.get_field(name)
-    if isinstance(field, ForeignObjectRel):
+    field = get_obj_field(obj, name)
+    if isinstance(field, RELATED_FIELD_CLASSES):
         accessor_name = field.get_accessor_name()
         try:
             manager_or_obj = getattr(obj, accessor_name)
         except model.DoesNotExist:
             return []
+
         if isinstance(manager_or_obj, models.Manager):
             return list(manager_or_obj.all())
         else:
             return [manager_or_obj]
     else:
-        return [getattr(obj, name)]
+        try:
+            return [getattr(obj, name)]
+        except model.DoesNotExist:
+            return []
+
+
+def get_obj_field(obj, field_name):
+    model = type(obj)
+    opts = model._meta
+    try:
+        field = opts.get_field(field_name)
+    except FieldDoesNotExist:
+        field = opts._name_map[field_name][0]
+    return field
 
 
 def obj_matches_filter_statement(obj, filter_statement, filter_value, lookup_adapter=None):
@@ -77,11 +92,9 @@ def obj_matches_filter_statement(obj, filter_statement, filter_value, lookup_ada
     if not isinstance(obj, models.Model):
         raise Exception("Only django objects supported for now. %s" % str(obj))
 
-    model = type(obj)
-    opts = model._meta
-    field = opts.get_field(next_token)
-
     if len(remaining_statement_parts) == 1:
+        model = type(obj)
+        field = get_obj_field(obj, next_token)
         simple_type = get_field_simple_datatype(field)
         assert_is_valid_lookup_for_field(lookup, simple_type)
 
@@ -118,7 +131,7 @@ def prep_filter_value_and_lookup(model, filter_statement, filter_value):
 
     try:
         lookup = qs.query.where.children[0].lookup_name
-        if lookup == 'in' and isinstance(filter_value, basestring):
+        if lookup == 'in' and isinstance(filter_value, six.string_types):
             pass
         else:
             filter_value = qs.query.where.children[0].rhs

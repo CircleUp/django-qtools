@@ -16,14 +16,10 @@ import re
 from decimal import Decimal
 
 from django.conf import settings
+from django.utils import six
 
-
-from qtools.exceptions import InvalidLookupUsage
-
-from qtools.utils import remove_trailing_spaces_if_string
-from utils import django_instances_to_keys_for_comparison, date_lookup, limit_float_to_digits
-from .exceptions import InvalidLookupValue
-from .utils import to_str, typecast_timestamp
+from .exceptions import InvalidLookupValue, InvalidLookupUsage
+from .utils import to_str, typecast_timestamp, django_instances_to_keys_for_comparison, date_lookup, limit_float_to_digits, remove_trailing_spaces_if_string
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +57,7 @@ class PythonLookups(object):
         except TypeError:
             haystack = to_str(haystack)
 
-        if isinstance(haystack, basestring):
+        if isinstance(haystack, six.string_types):
             needle = to_str(needle)
 
         return needle in haystack
@@ -91,7 +87,7 @@ class PythonLookups(object):
         else:
             haystack = [v for v in haystack]
 
-        if isinstance(haystack, basestring):
+        if isinstance(haystack, six.string_types):
             needle = to_str(needle)
 
         return needle in haystack
@@ -195,7 +191,8 @@ class PythonLookups(object):
         # https://code.djangoproject.com/ticket/7672#comment:3
         if isinstance(dt, datetime.datetime):
             dt = dt.date()
-        return dt.isoweekday() + 1 == week_day
+        obj_weekday = (dt.isoweekday() + 1) % 7 or 7
+        return obj_weekday == week_day
 
     @classmethod
     @date_lookup
@@ -219,7 +216,7 @@ class PythonLookups(object):
     @classmethod
     def regex(cls, text, pattern, simple_field_type=None, flags=0):
         REGEX_TYPE = type(re.compile(''))
-        if not isinstance(pattern, (REGEX_TYPE, basestring)):
+        if not isinstance(pattern, (REGEX_TYPE, six.string_types)):
             raise InvalidLookupValue('Must use a string or compiled pattern with the regex lookup. Received: %s' % repr(pattern))
 
         if text is None:
@@ -263,10 +260,10 @@ class MySqlCompatibleLookups(PythonLookups):
 
     @classmethod
     def in_func(cls, needle, haystack, simple_field_type=None):
-        if isinstance(needle, basestring):
+        if isinstance(needle, six.string_types):
             needle = needle.lower()
 
-        if isinstance(haystack, basestring):
+        if isinstance(haystack, six.string_types):
             haystack = haystack.lower()
 
         if simple_field_type == 'boolean':
@@ -330,7 +327,7 @@ class MySqlCompatibleLookups(PythonLookups):
             if simple_field_type == 'string':
                 raise InvalidLookupUsage('Comparing strings in python can have different results than you would get in MySql due to python not being aware of the collation.')
 
-            if isinstance(obj_value, basestring):
+            if isinstance(obj_value, six.string_types):
                 # when doing string comparisons mysql is not case sensitive in the most commonly used collations
                 obj_value = obj_value.lower()
 
@@ -357,7 +354,7 @@ ENGINE_ADAPTER_MAPPING = {
 
 
 def get_lookup_adapter(db_engine=None):
-    if not db_engine or not isinstance(db_engine, basestring):
+    if not db_engine or not isinstance(db_engine, six.string_types):
         db_engine = settings.DATABASES['default']['ENGINE']
 
     return ENGINE_ADAPTER_MAPPING.get(db_engine, PythonLookups)

@@ -1,0 +1,2 @@
+import tox
+tox.cmdline()
