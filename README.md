@@ -81,7 +81,7 @@ assert pizza.is_delivered
 ```
 ## API
 
-- **@q_method decorator**
+### @q_method decorator
 
 Allows a queryset method to be defined in terms of Q objects only.
 
@@ -100,7 +100,7 @@ Order.objects.is_delivered()
 Pizza.objects.filter(nested_q('order', OrderQuerySet.is_delivered.q()))
 ```
 
-- **filter_by_q(objs, q)**
+### filter_by_q(objs, q)
 
 Filter a collection of django instances by a Q object. Note that if the fields used in the filter haven't been prefetched then calls to the database will still occur (and probably a lot of them).
 
@@ -111,7 +111,7 @@ all_orders = list(Order.objects.all())
 q = Q(delivered_time__isnull=False)
 delivered_orders = filter_by_q(all_orders, q)
 ```
-- **obj_matches_q(obj, q)**
+### obj_matches_q(obj, q)
  
 Return whether a single django object matches a Q object
 ```python
@@ -122,7 +122,7 @@ q = Q(delivered_time__isnull=False)
 assert obj_matches_q(order, q)
 ```
 
-- **nested_q(prefix, q)**
+### nested_q(prefix, q)
 Prepend the prefix to all arguments in the Q object.
 
 ```python
