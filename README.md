@@ -148,14 +148,16 @@ Q(order__price=500) == nested_q('order', Q(price=500))
 - Features
   - N-Query Warning
   - q_method should behave like a class method
-- Testing
-  - More tests
-  - Testing across environments (django and python versions)
-  - Automatic pull request testing
 - Documentation
   - License
   - Working @ CircleUp
 - Open source package and make it accessible via pip
+
+**Version 0.91 (dev)**
+ - week_day lookup fixed
+ - automatic pull request testing
+ - python 3 support
+ - django 1.8 support
 
 **Version 0.9 (current)**
 - Features
