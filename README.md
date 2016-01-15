@@ -8,7 +8,7 @@
 [ ![Codeship Status for CircleUp/django-qtools](https://img.shields.io/codeship/9cffff70-996d-0133-b554-2e043ba8a616.svg?label=Django 1.8)](https://codeship.com/projects/126259)
 
 
-Standard Django forces business logic to be repeated as it's used in different contexts (querying, instance methods, querying related objects).  This repetition makes is hard to maintain and definitions frequently become out of sync.  This library allows a piece of filtering logic to be written once and then used in many different contexts.
+Standard Django forces business logic to be repeated as it's used in different contexts (querying, instance methods, querying related objects).  This repetition makes it hard to maintain and definitions frequently become out of sync.  This library allows a piece of filtering logic to be written once and then used in many different contexts.
 
 ## Features
  - Keep code DRY. Write filter logic once, use many places.
