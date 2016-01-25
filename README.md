@@ -138,6 +138,9 @@ Q(order__price=500) == nested_q('order', Q(price=500))
 - Display logic (like ordering) does not belong in the QuerySet.
 - If it all possible, queryset methods should be written as `@q_method`s. This will allow the same filtering logic to be used in queries from other models as well as in-memory using `obj_matches_q`.
 
+## Known Issues
+- When a django queryset filters on a related object that has a 1 to many relationship, it may return duplicate objects. This is often remedied by calling `.distinct()` on the queryset.  `obj_matches_q` does not return duplicate objects.
+
 ## Changelog
 
 **Future**
