@@ -123,6 +123,9 @@ def get_field_simple_datatype(field):
 
     if 'numeric' in db_field_type:
         return 'number'
+    
+    if 'datetime' in db_field_type:
+        return 'datetime'
 
     return _DB_TYPES_SIMPLE_MAP.get(db_field_type, db_field_type)
 
