@@ -8,7 +8,7 @@ This library allows a piece of filtering logic to be written once and then used 
 
 setup(
         name='django-qtools',
-        version='0.9.1',
+        version='1.0',
         author='Bryce Drennan, CircleUp',
         author_email='bdrennan@circleup.com',
         url='https://github.com/CircleUp/django-qtools',

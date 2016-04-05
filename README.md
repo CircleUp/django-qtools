@@ -143,26 +143,18 @@ Q(order__price=500) == nested_q('order', Q(price=500))
 
 ## Changelog
 
-**Future**
-- Complete in-memory QuerySet replacement
-- Replace db backend for faster tests
+**Version 1.0 (current) **
+  - Licensed under MIT
+  - Added working @ CircleUp section
+  - Make package available via pip 
 
-**Version 1.0**
-- Features
-  - N-Query Warning
-  - q_method should behave like a class method
-- Documentation
-  - License
-  - Working @ CircleUp
-- Open source package and make it accessible via pip
-
-**Version 0.91 (dev)**
+**Version 0.9.1 **
  - week_day lookup fixed
  - automatic pull request testing
  - python 3 support
  - django 1.8 support
 
-**Version 0.9 (current)**
+**Version 0.9 **
 - Features
   - Supports all Django 1.8 lookups
   - Related object traversal and filtering
@@ -200,7 +192,7 @@ Project | Q object queryset methods | methods with args | Q nesting
 [django recycle](https://github.com/flc/django-recycle/blob/master/django_recycle/utils/prefixed_q.py) | N | N | Y
 
 ### Alternative APIs
-These options were considered.
+These options were considered and not used.
 ```python
 from django.db import models
 from pyq import matches_q
@@ -244,3 +236,12 @@ class Pizza(models.Model):
    is_delivered = q_method_to_python_method(PizzaQuerySet.delivered)
 
 ```
+
+
+### Work at CircleUp
+
+Entrepreneurs are changing what we eat, what we wear and how we shop. We are the entrepreneurs helping those dreams come to life.
+
+Since 2012 we've grown into the largest private equity marketplace in the world by helping people invest in innovative consumer and retail companies. Growth capital is the fuel for these emerging brands, and we're working to make fundraising as frictionless as possible using software and data.
+
+[See Open Jobs](https://circleup.com/jobs/)
