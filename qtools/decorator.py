@@ -4,6 +4,32 @@ from django.db.models import Q
 from qtools.filterq import obj_matches_q
 
 
+class QToMethodDescriptor(object):
+    def __init__(self, _q_func, is_property=False, execute_in_memory=False):
+        self._q_func = _q_func
+        self._is_property = is_property
+        self._execute_in_memory = execute_in_memory
+
+    def _execute(self, model_cls, model_instance, q):
+        if self._execute_in_memory:
+            return obj_matches_q(model_instance, q)
+        else:
+            return model_cls.objects.filter(q).filter(pk=model_instance.pk).exists()
+
+    def __get__(self, instance, owner):
+        if instance:
+            if self._is_property:
+                q = self._q_func()
+                return self._execute(owner, instance, q)
+            else:
+                def wrapper(*args, **kwargs):
+                    q = self._q_func(*args, **kwargs)
+                    return self._execute(owner, instance, q)
+                return wrapper
+        else:
+            return self
+
+
 class QMethodCallable(object):
     def __init__(self, q_func):
         self.q_func = q_func
@@ -23,7 +49,13 @@ class QInstanceMethodCallable(QMethodCallable):
 
 
 class QClassMethodCallable(QMethodCallable):
-     def __call__(self, cls, *args, **kwargs):
+    def as_method(self, execute_in_memory=False):
+        return QToMethodDescriptor(self.q, is_property=False, execute_in_memory=execute_in_memory)
+
+    def as_property(self, execute_in_memory=False):
+        return QToMethodDescriptor(self.q, is_property=True, execute_in_memory=execute_in_memory)
+
+    def __call__(self, cls, *args, **kwargs):
         return self.q(*args, **kwargs)
 
 
