@@ -9,15 +9,15 @@ from qtools.filterq import obj_matches_q
 
 class OrderQuerySet(QuerySet):
     @q_method
-    def is_delivered(self):
+    def is_delivered(cls):
         return Q(delivered_time__isnull=False)
 
     @q_method
-    def delivered_in_last_x_days(self, days):
+    def delivered_in_last_x_days(cls, days):
         return Q(delivered_time__gt=timezone.now() - timedelta(days=days))
 
     @q_method
-    def cost_between(self, lower=0, upper=100000):
+    def cost_between(cls, lower=0, upper=100000):
         return Q(price__gte=lower, price__lte=upper)
 
 
@@ -36,17 +36,19 @@ class Topping(models.Model):
 
 class PizzaQuerySet(QuerySet):
     @q_method
-    def is_delivered(self):
-        return nested_q('order', OrderQuerySet.is_delivered.q())
+    def is_delivered(cls):
+        return nested_q('order', OrderQuerySet.is_delivered())
 
     @q_method
-    def delivered_in_last_x_days(self, days):
-        return nested_q('order', OrderQuerySet.delivered_in_last_x_days.q(days))
+    def delivered_in_last_x_days(cls, days):
+        return nested_q('order', OrderQuerySet.delivered_in_last_x_days(days))
 
     @q_method
+    def is_delivered_using_cls(cls):
+        return cls.is_delivered()
+
     def is_delivered_using_self(self):
-        return self.is_delivered.q()
-
+        return self.filter(self.is_delivered.q())
 
 class Pizza(models.Model):
     created = models.DateTimeField()
@@ -56,9 +58,8 @@ class Pizza(models.Model):
 
     objects = PizzaQuerySet.as_manager()
 
-    @property
-    def is_delivered(self):
-        return obj_matches_q(self, PizzaQuerySet.is_delivered.q())
+    is_delivered = PizzaQuerySet.is_delivered.as_property(execute_in_memory=True)
+    is_delivered_method = PizzaQuerySet.is_delivered.as_method(execute_in_memory=True)
 
 
 class MiscModel(models.Model):

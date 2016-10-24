@@ -1,5 +1,8 @@
 import types
 import functools
+from functools import partial
+
+from django.utils import six
 from django.db.models import Q
 from qtools.filterq import obj_matches_q
 
@@ -30,33 +33,31 @@ class QToMethodDescriptor(object):
             return self
 
 
-class QMethodCallable(object):
-    def __init__(self, q_func):
-        self.q_func = q_func
-        functools.update_wrapper(self, self.q_func)
-
-    def q(self, *args, **kwargs):
-        q = self.q_func(*args, **kwargs)
-        if not isinstance(q, Q):
-            raise ValueError('QuerySet methods decorated with q_method must return a Q object.')
-        return q
+def _create_qs_instance_method(q_func, qs):
+    def qs_func(*args, **kwargs):
+        q = q_func(*args, **kwargs)
+        return qs.filter(q)
+    qs_func.q = q_func
+    return qs_func
 
 
-class QInstanceMethodCallable(QMethodCallable):
-    def __call__(self, instance, *args, **kwargs):
-        q = self.q(*args, **kwargs)
-        return instance.filter(q)
+def _create_qs_class_method(q_func, qs_class):
+    # in python 2, QuerySet.as_manager uses inspect.ismethod so we must return a bound MethodType
+    # while in python3, QuerySet.as_manager uses inspect.isfunction so we return a plain, unbound function
+    
+    if six.PY2:
+        def qs_func(cls, *args, **kwargs):
+            return q_func(*args, **kwargs)
+    elif six.PY3:
+        def qs_func(*args, **kwargs):
+            return q_func(*args, **kwargs)
 
-
-class QClassMethodCallable(QMethodCallable):
-    def as_method(self, execute_in_memory=False):
-        return QToMethodDescriptor(self.q, is_property=False, execute_in_memory=execute_in_memory)
-
-    def as_property(self, execute_in_memory=False):
-        return QToMethodDescriptor(self.q, is_property=True, execute_in_memory=execute_in_memory)
-
-    def __call__(self, cls, *args, **kwargs):
-        return self.q(*args, **kwargs)
+    qs_func.q = q_func
+    qs_func.as_method = lambda **kwargs: QToMethodDescriptor(q_func, is_property=False, **kwargs)
+    qs_func.as_property = lambda **kwargs: QToMethodDescriptor(q_func, is_property=True, **kwargs)
+    if six.PY2:
+        qs_func = types.MethodType(qs_func, qs_class, qs_class)
+    return qs_func
 
 
 class q_method(object):
@@ -88,8 +89,13 @@ class q_method(object):
         self.fn = fn
 
     def __get__(self, instance, owner):
-        q_func = types.MethodType(self.fn, owner, owner)
+        def q_func(*args, **kwargs):
+            q = self.fn(owner, *args, **kwargs)
+            if not isinstance(q, Q):
+                raise ValueError('QuerySet methods decorated with q_method must return a Q object.')
+            return q
+
         if instance is not None:
-            return types.MethodType(QInstanceMethodCallable(q_func), instance, owner)
+            return _create_qs_instance_method(q_func, instance)
         else:
-            return types.MethodType(QClassMethodCallable(q_func), owner, owner)
+            return _create_qs_class_method(q_func, owner)
