@@ -9,15 +9,45 @@ from main.models import Order, Pizza, OrderQuerySet
 
 
 class QMethodDecoratorTests(TestCase):
-    def test_q_method_cant_use_self(self):
+    def test_q_method_use_cls(self):
         order = Order(price=100)
+        order.delivered_time = timezone.now()
         order.save()
 
         pizza = Pizza(diameter=12, order=order, created=timezone.now())
         pizza.save()
 
-        with self.assertRaisesRegexp(Exception, 'q_method'):
-            Pizza.objects.is_delivered_using_self()
+        self.assertEqual(1, Pizza.objects.is_delivered_using_self().count())
+
+    def test_q_method_use_self(self):
+        order = Order(price=100)
+        order.delivered_time = timezone.now()
+        order.save()
+
+        pizza = Pizza(diameter=12, order=order, created=timezone.now())
+        pizza.save()
+
+        self.assertEqual(1, Pizza.objects.is_delivered_using_self().count())
+
+    def test_q_method_use_method(self):
+        order = Order(price=100)
+        order.delivered_time = timezone.now()
+        order.save()
+
+        pizza = Pizza(diameter=12, order=order, created=timezone.now())
+        pizza.save()
+
+        self.assertTrue(pizza.is_delivered_method())
+
+    def test_q_method_use_prop(self):
+        order = Order(price=100)
+        order.delivered_time = timezone.now()
+        order.save()
+
+        pizza = Pizza(diameter=12, order=order, created=timezone.now())
+        pizza.save()
+
+        self.assertTrue(pizza.is_delivered)
 
     def test_q_method_with_args(self):
         """Test whether q method can handle args and kwargs"""
